@@ -1,0 +1,21 @@
+
+5x OLED SPI Display https://www.amazon.de/SSD1306-Display-Arduino-Raspberry-Schrift/dp/B07Z8QZLXS/
+https://www.digikey.at/en/products/detail/adafruit-industries-llc/4741/13426655
+
+https://luma-oled.readthedocs.io/en/latest/hardware.html#spi
+https://www.brainy-bits.com/post/two-is-better-than-one-how-to-connect-two-spi-oled-displays
+
+
+Port expander:
+3x Adafruit MCP23017 I2C GPIO Expander
+https://www.digikey.at/en/products/detail/adafruit-industries-llc/5346/15913270
+
+
+
+Anagramme:
+https://worter-finden.de/
+
+
+Tkinter mainloop:
+https://stackoverflow.com/questions/459083/how-do-you-run-your-own-code-alongside-tkinters-event-loop
+
