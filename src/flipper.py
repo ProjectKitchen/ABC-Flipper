@@ -1,31 +1,38 @@
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import *
+import random
 from random import randrange
 import pygame
 import serial
 import time
+import array
+import string
 
 
 screenstate = False
 textcolor="yellow"
-boxcolor="grey"
-backgroundcolor="darkblue"
+boxcolor="red"
+backgroundcolor="black"
 maxLetters=5
+maxTargets=3
 
 
 ser = serial.Serial(port="/dev/ttyACM0", baudrate=115200)
+letterIDs = array.array('i',(0 for i in range(0,maxLetters))) 
+boxID = 0
+letterwidth=0
+modifyLetter=0   
+actTargets = array.array('u',('x' for i in range(0,maxTargets))) 
 
 
 def toggle_fullscreen(self, event=None):
-    global screenstate
-    global root
+    global screenstate, root
     screenstate = not screenstate  # Just toggling the boolean
     root.attributes("-fullscreen", screenstate)
 
 def end_fullscreen(self, event=None):
-    global screenstate
-    global root
+    global screenstate, root
     screenstate = False
     root.attributes("-fullscreen", False)
     return "break"
@@ -36,23 +43,20 @@ def abs_move(self, _object, new_x, new_y):
     # Move the object
     self.move(_object, new_x-x, new_y-y)
 
-
-def button1_pressed(self, event=None):
+def changeLetter():
     global modifyLetter
-    global actword, xpos, ypos, textcolor, boxcolor
     modifyLetter=modifyLetter+1
-    if (modifyLetter>=maxLetters):
+    if (modifyLetter>=len(actword)):
         modifyLetter=0
     print ("button1 pressed, modifyLetter = " + str(modifyLetter))
-    animate(actword, xpos, ypos, textcolor, boxcolor)
+    updateLetters(actword)
     
 
-def button2_pressed(self, event=None):
-    global modifyLetter
-    global actword, xpos, ypos, textcolor, boxcolor
-    if (modifyLetter<maxLetters-1):
+def switchLetter():
+    global modifyLetter, actword
+    if (modifyLetter<len(actword)-1):
         nextLetter=modifyLetter+1;
-        if (nextLetter>=maxLetters):
+        if (nextLetter>=len(actword)):
             nextLetter=0
         s=list(actword)
         tmp=s[nextLetter]
@@ -67,36 +71,48 @@ def button2_pressed(self, event=None):
         modifyLetter=0
 
     print ("button2 pressed, actword = " + actword)
-    animate(actword, xpos, ypos, textcolor, boxcolor)
+    updateLetters(actword)
     
 
+def addLetter(pos):
+    global actword
+    if len(actword)<maxLetters:
+        actword=actword+actTargets[pos]
+        updateLetters(actword)
+        sound = pygame.mixer.Sound('../sounds/kling2.wav')
+        playing = sound.play()    
+    else:
+        sound = pygame.mixer.Sound('../sounds/kling1.wav')
+        playing = sound.play()    
 
-def draw(char, x, y, textcolor, boxcolor):
-    """Draw one character in a box at the given coordinate"""
-    global canvas
-
-    text_id = canvas.create_text(x, y, text=char, anchor="nw", font=letterfont, fill=textcolor)
-    x0, y0, x1, y1 = canvas.bbox(text_id)
-    box_id = canvas.create_rectangle(x0-1, y0-1, x1+1, y1+1, fill=boxcolor, outline="white")
-    canvas.lift(text_id, box_id)
-
-def animate(string, x, y, textcolor, boxcolor):
-    """Draw each character in the string at one second intervals. """
-    global modifyLetter, canvas
+def button1_pressed(self, event=None):
+    changeLetter()
     
-    canvas.delete("all")
-    # canvas.update_idletasks()
+
+def button2_pressed(self, event=None):
+    switchLetter()    
+
+def createScene():
+    global letterIDs, boxID 
+    for i in range (maxLetters):
+        letterIDs[i] = canvas.create_text(xpos+10+letterwidth*i, ypos, text=" ", anchor="nw", font=letterfont, fill=textcolor)
+        x0, y0, x1, y1 = canvas.bbox(letterIDs[i])
+        b=canvas.create_rectangle(xpos+letterwidth*i, ypos, xpos+letterwidth*(i+1), y1, fill=boxcolor, outline="white")
+        canvas.lift(letterIDs[i],b)
+    boxID = canvas.create_rectangle(xpos, y1+10, xpos+letterwidth, y1+20, fill="white", outline="white")
+
+def updateLetters(string):
     for i in range (len(string)):
-        draw(string[i], x, y, textcolor, boxcolor)
-        width=letterfont.measure(string[i])+10
-        if i==modifyLetter:
-            box_id = canvas.create_rectangle(x, y-30, x+width-10, y-10, fill="white", outline="white")
-        x=x+width
-      
-#    if len(string) > 1:
-#        width = letterfont.measure(string[0]) +10
-#        string = string[1:]
-#        canvas.after(100, animate, canvas, string, x+width, y, textcolor, boxcolor)
+        canvas.itemconfigure(letterIDs[i],text=str(string[i]))
+    canvas.abs_move(boxID,xpos+modifyLetter*letterwidth, ypos+fontsize*1.7)
+    if (string in lines):
+        print (" *******  WORD FOUND !! ***********")
+
+def renewTargets():
+    global actTargets
+    for i in range (maxTargets):
+        actTargets[i]=random.choice(string.ascii_uppercase)
+    print ("Act Targets:" + str(actTargets))
 
 
 root = tk.Tk()
@@ -118,14 +134,16 @@ else:
     xpos=20
     ypos=100
     
-letterfont = tkFont.Font(size = fontsize)
-width = letterfont.measure("0")
+tkFont.families()    
+letterfont = tkFont.Font(family="Noto Mono", size = fontsize)
+#letterfont = tkFont.Font(family="Carlito", size = fontsize)
+letterwidth = letterfont.measure("0")+20
 
 pygame.mixer.init()
 sound = pygame.mixer.Sound('../sounds/kling1.wav')
 playing = sound.play()
 #while playing.get_busy():
-#    pygame.time.delay(100)
+#    pygame.time.delay(10)
 
 root.bind("<F11>", toggle_fullscreen)
 root.bind("<Escape>", end_fullscreen)
@@ -135,44 +153,46 @@ root.bind("<F2>", button2_pressed)
 text_file = open("worte.txt", "r")
 lines = text_file.readlines()
 text_file.close()
-lines[:] = [x.upper() for x in lines if x.strip()]
+lines[:] = [x.upper().rstrip("\n") for x in lines if x.strip()]
+print ("Loaded "+str(len(lines)) + " Words.")
 # print (lines)
-print (len(lines))
-
-#actword="LIADS"
-actword=lines[randrange(len(lines))].rstrip()
-print (actword)
-
-modifyLetter=0   
-animate(actword, xpos, ypos, textcolor, boxcolor)
 
 
-myrect = canvas.create_rectangle(10, 10, 20, 20, fill="red", outline="white")
-pos=0
-def film():
-    global pos, text, ser
-    canvas.move(myrect,1,0)
+createScene()
+#actword=lines[randrange(len(lines))]
+#print (actword)
+actword=""
+
+renewTargets()
+updateLetters(actword)
+
+
+
+def processGameEvents():
+    global actword
     if (ser.inWaiting() > 0):
-        # read the bytes and convert from binary array to ASCII
         data_str = ser.read(ser.inWaiting()).decode('ascii') 
-        # print the incoming string without putting a new-line
-        # ('\n') automatically after every print()
-        print(data_str, end='') 
-    
-    canvas.after(100, film)
-    pos=pos+1
-    if pos==50:
-        pos=0
-        canvas.abs_move(myrect,10,10)
-        sound = pygame.mixer.Sound('../sounds/kling2.wav')
-        playing = sound.play()
+        print("Serial incoming:" + data_str) #, end='')
+        i=int(data_str)
+        if (i==0):
+            changeLetter()
+        if (i==1):
+            switchLetter()
+        if i>=2 and i<=4:
+            addLetter(i-2)
+        if (i==5):
+            #sound = pygame.mixer.Sound('../sounds/kling' + data_str +'.wav')
+            sound = pygame.mixer.Sound('../sounds/kling3.wav')
+            playing = sound.play()    
+            renewTargets()
+    canvas.after(10, processGameEvents)
 
-film()
-
-
+processGameEvents()
 root.mainloop()
 
 
 
 # root.geometry("400x300")
 # root.configure(bg='blue')
+# canvas.move(myrect,1,0)
+# canvas.delete("all")

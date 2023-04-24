@@ -6,6 +6,8 @@
 #define FIRST_LIGHT 10
 #define NUM_LIGHTS 3
 
+#define DEBOUNCE_TIME 100
+
 void setup() {
 
   Serial.begin(115200);
@@ -20,6 +22,7 @@ void setup() {
 }
 
 int buttonState[6]={HIGH};
+uint32_t buttonDebounce[6]={0};
 
 void loop() {
   static int blinkCount=0;
@@ -38,7 +41,12 @@ void loop() {
 
     if ((tmp=digitalRead(FIRST_BUTTON+i)) != buttonState[i]) {
       buttonState[i]=tmp;
-      if (tmp==LOW) Serial.print((char) ('0'+i));
+      if (tmp==LOW) {
+        if (millis()-buttonDebounce[i] > DEBOUNCE_TIME) {
+          buttonDebounce[i]=millis();
+          Serial.print((char) ('0'+i));
+        }
+      }
     }
 
   }
