@@ -47,7 +47,7 @@ void setup() {
   for (int i=0; i<8; i++) shiftOut(dataPin, clockPin, MSBFIRST, 0xff);
   digitalWrite(latchPin, HIGH);
 
-
+ Serial.print('s');
 }
 
 void processBlinks() {
