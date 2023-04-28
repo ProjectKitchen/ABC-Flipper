@@ -4,6 +4,8 @@ https://www.digikey.at/en/products/detail/adafruit-industries-llc/4741/13426655
 
 https://luma-oled.readthedocs.io/en/latest/hardware.html#spi
 https://www.brainy-bits.com/post/two-is-better-than-one-how-to-connect-two-spi-oled-displays
+sudo python3 welcome.py -d st7735 -i spi --width 160 --height 128
+
 
 
 Port expander:
@@ -19,3 +21,7 @@ https://worter-finden.de/
 Tkinter mainloop:
 https://stackoverflow.com/questions/459083/how-do-you-run-your-own-code-alongside-tkinters-event-loop
 
+8 7seg LED display SPI:
+https://www.dfrobot.com/product-374.html
+https://wiki.dfrobot.com/3-Wire_LED_Module__SKU_DFR0090_
+https://www.dfrobot.com/product-568.html

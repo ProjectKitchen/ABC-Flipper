@@ -15,10 +15,12 @@ textcolor="yellow"
 boxcolor="red"
 backgroundcolor="black"
 maxLetters=5
-maxTargets=3
+maxTargets=4
 
+points=0
+winAnim=0
 
-ser = serial.Serial(port="/dev/ttyACM0", baudrate=115200)
+ser = serial.Serial(port="/dev/ttyUSB0", baudrate=115200)
 letterIDs = array.array('i',(0 for i in range(0,maxLetters))) 
 boxID = 0
 letterwidth=0
@@ -43,17 +45,28 @@ def abs_move(self, _object, new_x, new_y):
     # Move the object
     self.move(_object, new_x-x, new_y-y)
 
+def playSound(s):
+    #sound = pygame.mixer.Sound('../sounds/kling' + data_str +'.wav')
+    fn='../sounds/' + s +'.wav'
+    sound = pygame.mixer.Sound(fn)
+    playing = sound.play()    
+    #while playing.get_busy():
+    #    pygame.time.delay(10)
+
+
 def changeLetter():
     global modifyLetter
     modifyLetter=modifyLetter+1
     if (modifyLetter>=len(actword)):
         modifyLetter=0
-    print ("button1 pressed, modifyLetter = " + str(modifyLetter))
+    print ("button1 - move to letter " + str(modifyLetter))
     updateLetters(actword)
     
 
 def switchLetter():
     global modifyLetter, actword
+    if (len(actword)<1):
+        return
     if (modifyLetter<len(actword)-1):
         nextLetter=modifyLetter+1;
         if (nextLetter>=len(actword)):
@@ -70,7 +83,13 @@ def switchLetter():
         actword=tmp+actword[:-1]
         modifyLetter=0
 
-    print ("button2 pressed, actword = " + actword)
+    print ("button2 - switch letters, actword = " + actword)
+    updateLetters(actword)
+
+def kickLetter():
+    global modifyLetter, actword
+    actword = actword[:modifyLetter] + actword[modifyLetter+1:]
+    print ("button3 - kick letter, actword = " + actword)
     updateLetters(actword)
     
 
@@ -79,11 +98,9 @@ def addLetter(pos):
     if len(actword)<maxLetters:
         actword=actword+actTargets[pos]
         updateLetters(actword)
-        sound = pygame.mixer.Sound('../sounds/kling2.wav')
-        playing = sound.play()    
+        playSound('f'+str(pos+1))
     else:
-        sound = pygame.mixer.Sound('../sounds/kling1.wav')
-        playing = sound.play()    
+        playSound('t1')
 
 def button1_pressed(self, event=None):
     changeLetter()
@@ -91,6 +108,13 @@ def button1_pressed(self, event=None):
 
 def button2_pressed(self, event=None):
     switchLetter()    
+
+def updatePoints(p):
+    global points
+    points=points+p
+    ser.write(str(points).zfill(8)[::-1].encode())
+
+   
 
 def createScene():
     global letterIDs, boxID 
@@ -102,11 +126,36 @@ def createScene():
     boxID = canvas.create_rectangle(xpos, y1+10, xpos+letterwidth, y1+20, fill="white", outline="white")
 
 def updateLetters(string):
+    global winAnim
     for i in range (len(string)):
-        canvas.itemconfigure(letterIDs[i],text=str(string[i]))
+        canvas.itemconfigure(letterIDs[i],text=str(string[i]))        
+    for i in range(len(string),maxLetters):
+        canvas.itemconfigure(letterIDs[i],text=' ')
     canvas.abs_move(boxID,xpos+modifyLetter*letterwidth, ypos+fontsize*1.7)
     if (string in lines):
         print (" *******  WORD FOUND !! ***********")
+        updatePoints(1000);
+        playSound("w4")
+        winAnim=100
+        #actword=""
+        #renewTargets()
+        
+def animLetters():
+    global winAnim, actword
+    if winAnim % 10 == 0:
+        for i in range (len(actword)):
+            canvas.itemconfigure(letterIDs[i],fill="white")        
+    if winAnim % 10 == 5:
+        for i in range (len(actword)):
+            canvas.itemconfigure(letterIDs[i],fill="black")        
+    winAnim=winAnim-1
+    if winAnim==0:
+        for i in range (len(actword)):
+            canvas.itemconfigure(letterIDs[i],fill=textcolor)        
+        actword=""
+        renewTargets()
+        updateLetters(actword)
+
 
 def renewTargets():
     global actTargets
@@ -140,10 +189,7 @@ letterfont = tkFont.Font(family="Noto Mono", size = fontsize)
 letterwidth = letterfont.measure("0")+20
 
 pygame.mixer.init()
-sound = pygame.mixer.Sound('../sounds/kling1.wav')
-playing = sound.play()
-#while playing.get_busy():
-#    pygame.time.delay(10)
+#playSound('start')
 
 root.bind("<F11>", toggle_fullscreen)
 root.bind("<Escape>", end_fullscreen)
@@ -161,7 +207,7 @@ print ("Loaded "+str(len(lines)) + " Words.")
 createScene()
 #actword=lines[randrange(len(lines))]
 #print (actword)
-actword=""
+actword="OPATI"
 
 renewTargets()
 updateLetters(actword)
@@ -174,17 +220,28 @@ def processGameEvents():
         data_str = ser.read(ser.inWaiting()).decode('ascii') 
         print("Serial incoming:" + data_str) #, end='')
         i=int(data_str)
-        if (i==0):
-            changeLetter()
         if (i==1):
+            changeLetter()
+            playSound("m1")
+
+        if (i==2):
             switchLetter()
-        if i>=2 and i<=4:
-            addLetter(i-2)
-        if (i==5):
-            #sound = pygame.mixer.Sound('../sounds/kling' + data_str +'.wav')
-            sound = pygame.mixer.Sound('../sounds/kling3.wav')
-            playing = sound.play()    
+            playSound("m2")
+
+        if (i==3):
+            kickLetter()
+            playSound("t2")
+
+        if i>=4 and i<=7:
+            addLetter(i-4)
+            updatePoints(10);
+            
+        if (i==8):
+            playSound("w1")
             renewTargets()
+    if winAnim>0:
+        animLetters()
+
     canvas.after(10, processGameEvents)
 
 processGameEvents()
