@@ -24,7 +24,7 @@ lcdInterface = spi(devcie=0, port=0)
 device = st7735(lcdInterface)
 
 def make_font(name, size):
-    font_path = str(Path(__file__).resolve().parent.joinpath('fonts', name))
+    font_path = str(Path(__file__).resolve().parent.joinpath('../fonts', name))
     return ImageFont.truetype(font_path, size)
 
 #font = make_font("fontawesome-webfont.ttf", device.height - 10)
