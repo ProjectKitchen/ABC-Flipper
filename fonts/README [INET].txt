@@ -1,3 +1,11 @@
+
+
+these fonts have been made available by the great LUMA project, thank you !
+see:
+https://github.com/rm-hull/luma.examples
+
+
+
 +#######################################+
 #					#
 # C&C: Red Alert [Internet] (TrueType)	#
