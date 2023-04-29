@@ -24,7 +24,8 @@ lcdInterface = spi(devcie=0, port=0)
 device = st7735(lcdInterface)
 
 def make_font(name, size):
-    font_path = str(Path(__file__).resolve().parent.joinpath('../fonts', name))
+    #font_path = str(Path(__file__).resolve().parent.joinpath('/home/pi/ABC-Flipper/fonts', name))
+    font_path = '/home/pi/ABC-Flipper/fonts/' + name
     return ImageFont.truetype(font_path, size)
 
 #font = make_font("fontawesome-webfont.ttf", device.height - 10)
@@ -86,8 +87,8 @@ def abs_move(self, _object, new_x, new_y):
     self.move(_object, new_x-x, new_y-y)
 
 def playSound(s):
-    #sound = pygame.mixer.Sound('../sounds/kling' + data_str +'.wav')
-    fn='../sounds/' + s +'.wav'
+    #sound = pygame.mixer.Sound('/home/pi/ABC-Flipper/sounds/kling' + data_str +'.wav')
+    fn='/home/pi/ABC-Flipper/sounds/' + s +'.wav'
     sound = pygame.mixer.Sound(fn)
     playing = sound.play()    
     #while playing.get_busy():
@@ -260,7 +261,7 @@ tkFont.families()
 letterfont = tkFont.Font(family="Noto Mono", size = fontsize)
 #letterfont = tkFont.Font(family="Carlito", size = fontsize)
 letterwidth = letterfont.measure("0")+20
-pinballImg=ImageTk.PhotoImage(file="../img/pinball2.png")
+pinballImg=ImageTk.PhotoImage(file="/home/pi/ABC-Flipper/img/pinball2.png")
 
 pygame.mixer.init()
 playSound("w5")
@@ -270,7 +271,7 @@ root.bind("<Escape>", end_fullscreen)
 root.bind("<F1>", button1_pressed)
 root.bind("<F2>", button2_pressed)
 
-text_file = open("worte.txt", "r")
+text_file = open("/home/pi/ABC-Flipper/src/worte.txt", "r")
 lines = text_file.readlines()
 text_file.close()
 lines[:] = [x.upper().rstrip("\n") for x in lines if x.strip()]

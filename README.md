@@ -40,6 +40,7 @@
 
 * Build an flash the Arduino code (folder src/arduinoIO) 
 * run python3 flipper.py
-* install startup script and configure read-only filesystem for RP4
+* install startup script: sudo nano /etc/xdg/autostart/display.desktop
+* configure read-only filesystem (Preferences -> RaspberryPi Configuration -> Performance)
 
 
