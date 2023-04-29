@@ -18,11 +18,12 @@
 | 6    | Breadboard, jumper wires, buttons/reed switches | 
 
 
-## Connect components as shown;
+## Connect components as shown
 
 ![flipperBreadboardFoto1](./img/flipper_breadboard1.jpg)
 ![flipperBreadboardFoto2](./img/flipper_breadboard2.jpg)
 ![flipperBreadboardFoto3](./img/flipper_breadboard3.jpg)
+![flipperBreadboardFoto4](./img/flipper_breadboard4.jpg)
 
 
 ## Install SW-Requirements
