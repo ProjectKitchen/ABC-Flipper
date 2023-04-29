@@ -14,7 +14,8 @@ from pathlib import Path
 from luma.core.interface.serial import spi
 from luma.core.render import canvas
 from luma.lcd.device import st7735
-from PIL import ImageFont
+from PIL import ImageFont, Image, ImageTk
+
 
 
 lcdInterface = spi(devcie=0, port=0)
@@ -31,16 +32,20 @@ font = make_font("code2000.ttf", device.height - 10)
   
 screenstate = True
 textcolor="yellow"
-boxcolor="red"
+boardcolor="gray"
+activeboardcolor="red"
 backgroundcolor="black"
 maxLetters=5
 maxTargets=5
-
+maxLives=3
+lives=0
 points=0
 winAnim=0
 
 ser = serial.Serial(port="/dev/ttyUSB0", baudrate=115200)
 letterIDs = array.array('i',(0 for i in range(0,maxLetters))) 
+boardIDs = array.array('i',(0 for i in range(0,maxLetters))) 
+pinballIDs = array.array('i',(0 for i in range(0,maxLives))) 
 boxID = 0
 letterwidth=0
 modifyLetter=0   
@@ -156,13 +161,18 @@ def updatePoints(p):
    
 
 def createScene():
-    global letterIDs, boxID 
+    global letterIDs, boxID, pinballID
     for i in range (maxLetters):
         letterIDs[i] = tkCanvas.create_text(xpos+10+letterwidth*i, ypos, text=" ", anchor="nw", font=letterfont, fill=textcolor)
         x0, y0, x1, y1 = tkCanvas.bbox(letterIDs[i])
-        b=tkCanvas.create_rectangle(xpos+letterwidth*i, ypos, xpos+letterwidth*(i+1), y1, fill=boxcolor, outline="white")
-        tkCanvas.lift(letterIDs[i],b)
+        boardIDs[i]=tkCanvas.create_rectangle(xpos+letterwidth*i, ypos, xpos+letterwidth*(i+1), y1, fill=boardcolor, outline="white")
+        tkCanvas.lift(letterIDs[i],boardIDs[i])
     boxID = tkCanvas.create_rectangle(xpos, y1+10, xpos+letterwidth, y1+20, fill="white", outline="white")
+    for i in range (maxLives):
+        pinballIDs[i]=tkCanvas.create_image(50+i*100, 40, image=pinballImg, anchor="center")
+
+
+
 
 def updateLetters(string):
     global winAnim
@@ -170,14 +180,26 @@ def updateLetters(string):
         tkCanvas.itemconfigure(letterIDs[i],text=str(string[i]))        
     for i in range(len(string),maxLetters):
         tkCanvas.itemconfigure(letterIDs[i],text=' ')
+    for i in range(maxLetters):
+        if i==modifyLetter:
+            tkCanvas.itemconfigure(boardIDs[i],fill=activeboardcolor)
+        else:
+            tkCanvas.itemconfigure(boardIDs[i],fill=boardcolor)
+        
     tkCanvas.abs_move(boxID,xpos+modifyLetter*letterwidth, ypos+fontsize*1.7)
     if (string in lines):
         print (" *******  WORD FOUND !! ***********")
         updatePoints(1000);
         playSound("w4")
-        winAnim=100
-        #actword=""
-        #renewTargets()
+        winAnim=100      # start winning animation, see processGameEvents()
+
+def updatePinballs():
+    for i in range (maxLives):
+        if (i<lives):
+            tkCanvas.itemconfigure(pinballIDs[i],state='normal')        
+        else:
+            tkCanvas.itemconfigure(pinballIDs[i],state='hidden')
+
 
 def newGameRound():
     global actword, goalWord
@@ -186,6 +208,7 @@ def newGameRound():
     actword=""
     renewTargets()
     updateLetters(actword)
+    lives=3
 
         
 def animLetters():
@@ -196,11 +219,6 @@ def animLetters():
     if winAnim % 10 == 5:
         for i in range (len(actword)):
             tkCanvas.itemconfigure(letterIDs[i],fill="black")        
-    winAnim=winAnim-1
-    if winAnim==0:
-        for i in range (len(actword)):
-            tkCanvas.itemconfigure(letterIDs[i],fill=textcolor)        
-        newGameRound()
 
 def printTargets():
     print ("Act Targets:", end="")
@@ -242,9 +260,10 @@ tkFont.families()
 letterfont = tkFont.Font(family="Noto Mono", size = fontsize)
 #letterfont = tkFont.Font(family="Carlito", size = fontsize)
 letterwidth = letterfont.measure("0")+20
+pinballImg=ImageTk.PhotoImage(file="../img/pinball2.png")
 
 pygame.mixer.init()
-playSound("n3")
+playSound("w5")
 
 root.bind("<F11>", toggle_fullscreen)
 root.bind("<Escape>", end_fullscreen)
@@ -261,33 +280,57 @@ print ("Loaded "+str(len(lines)) + " Words.")
 goalWord=lines[randrange(len(lines))]
 createScene()
 newGameRound()
+updateLetters("*****")
+updatePinballs()
 
 
 def processGameEvents():
+    global winAnim, lives
     if (ser.inWaiting() > 0):
         data_str = ser.read(ser.inWaiting()).decode('ascii') 
         #print("Serial incoming:" + data_str) #, end='')
         try:
             i=int(data_str)
-            if (i==1):
-                changeLetter()
-                playSound("m1")
+            #if (i==3):
+            #    kickLetter()
+            #    playSound("t2")
+            if (i==0) and (lives==0):
+                playSound("n3")
+                lives=3
+                print ("GAME STARTED !! Lives left: " + str(lives))
+                newGameRound()
+                updatePinballs()
 
-            if (i==2):
-                switchLetter()
-                playSound("m2")
 
-            if (i==3):
-                kickLetter()
-                playSound("t2")
-
-            if i>=4 and i<4+maxTargets:
-                addLetter(i-4)
-                updatePoints(10);
+            if (lives>0):
                 
-            if (i==9):         # TBD
-                playSound("w1")
-                renewTargets()
+                if (i==1):
+                    lives=lives-1
+                    print ("BALL LOST! Lives left: " + str(lives))
+                    if (lives>0):
+                        playSound("t5")
+                    else:
+                        playSound("t3")
+                        updateLetters("*****")
+                    updatePinballs()
+
+
+                if (i==2):
+                    changeLetter()
+                    playSound("m1")
+
+                if (i==3):
+                    switchLetter()
+                    playSound("m2")
+
+                if i>=4 and i<4+maxTargets:
+                    addLetter(i-4)
+                    updatePoints(10);
+                    
+                if (i==9):         # TBD
+                    playSound("w1")
+                    renewTargets()
+                    
         except ValueError as e:
             s=str(data_str)
             if (s=='s'):
@@ -297,6 +340,11 @@ def processGameEvents():
 
     if winAnim>0:
         animLetters()
+        winAnim=winAnim-1
+        if winAnim==0:
+            for i in range (len(actword)):
+                tkCanvas.itemconfigure(letterIDs[i],fill=textcolor)        
+            newGameRound()
 
     tkCanvas.after(10, processGameEvents)
 
