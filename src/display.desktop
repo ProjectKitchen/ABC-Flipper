@@ -1,0 +1,6 @@
+# /etc/xdg/autostart/display.desktop
+
+[Desktop Entry]
+Name=ABCFlipper
+Exec=/usr/bin/python3 /home/pi/ABC-Flipper/src/flipper.py
+
