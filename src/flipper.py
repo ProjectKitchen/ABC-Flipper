@@ -9,27 +9,29 @@ import time
 import array
 import string
 
+runningOnRaspi=0
 
 from pathlib import Path
-from luma.core.interface.serial import spi
-from luma.core.render import canvas
-from luma.lcd.device import st7735
 from PIL import ImageFont, Image, ImageTk
 
+def getPath(name):
+    return (str(Path(__file__).resolve().parent.joinpath(name)))
 
 
-lcdInterface = spi(devcie=0, port=0)
+if runningOnRaspi==1:
+    from luma.core.interface.serial import spi
+    from luma.core.render import canvas
+    from luma.lcd.device import st7735
 
-#device = ssd1306(lcdInterface)
-device = st7735(lcdInterface)
+    lcdInterface = spi(devcie=0, port=0)
 
-def make_font(name, size):
-    #font_path = str(Path(__file__).resolve().parent.joinpath('/home/pi/ABC-Flipper/fonts', name))
-    font_path = '/home/pi/ABC-Flipper/fonts/' + name
-    return ImageFont.truetype(font_path, size)
+    #device = ssd1306(lcdInterface)
+    device = st7735(lcdInterface)
 
-#font = make_font("fontawesome-webfont.ttf", device.height - 10)
-font = make_font("code2000.ttf", device.height - 10)
+    #font = make_font("fontawesome-webfont.ttf", device.height - 10)
+    font = ImageFont.truetype(getPath("../fonts/code2000.ttf"), device.height - 10)
+
+    ser = serial.Serial(port="/dev/ttyUSB0", baudrate=115200)
   
 screenstate = True
 textcolor="yellow"
@@ -43,7 +45,6 @@ lives=0
 points=0
 winAnim=0
 
-ser = serial.Serial(port="/dev/ttyUSB0", baudrate=115200)
 letterIDs = array.array('i',(0 for i in range(0,maxLetters))) 
 boardIDs = array.array('i',(0 for i in range(0,maxLetters))) 
 pinballIDs = array.array('i',(0 for i in range(0,maxLives))) 
@@ -51,10 +52,12 @@ boxID = 0
 letterwidth=0
 modifyLetter=0   
 actTargets = array.array('u',('x' for i in range(0,maxTargets))) 
-
+keyPressed=""
 
 def displayLCD(pos,msg):
     #draw=canvas(device)
+    if runningOnRaspi==0:
+        return
     if (pos==1):
         with canvas(device) as draw:
             # w, h = draw.textsize(text=msg, font=font)
@@ -87,8 +90,7 @@ def abs_move(self, _object, new_x, new_y):
     self.move(_object, new_x-x, new_y-y)
 
 def playSound(s):
-    #sound = pygame.mixer.Sound('/home/pi/ABC-Flipper/sounds/kling' + data_str +'.wav')
-    fn='/home/pi/ABC-Flipper/sounds/' + s +'.wav'
+    fn=getPath("../sounds/"+ s +".wav") 
     sound = pygame.mixer.Sound(fn)
     playing = sound.play()    
     #while playing.get_busy():
@@ -147,18 +149,19 @@ def addLetter(pos):
     else:
         playSound('t1')
 
-def button1_pressed(self, event=None):
-    changeLetter()
+
+def keydown(e):
+    global keyPressed
+    print ('keyDown', e.char)
+    keyPressed = str(e.char)
+
+def keyup(e):
+    print ('keyUp', e.char)
     
-
-def button2_pressed(self, event=None):
-    switchLetter()    
-
 def updatePoints(p):
     global points
     points=points+p
-    ser.write(str(points).zfill(8)[::-1].encode())
-
+    # ser.write(str(points).zfill(8)[::-1].encode())
    
 
 def createScene():
@@ -239,6 +242,7 @@ def renewTargets():
     printTargets()
 
 root = tk.Tk()
+#root.geometry("1920x1080")
 tk.Canvas.abs_move = abs_move
 frame = Frame(root)
 frame.pack()
@@ -246,11 +250,15 @@ tkCanvas = tk.Canvas(root)
 tkCanvas.pack(fill="both", expand=True)
 tkCanvas.configure(bg=backgroundcolor)
 
+
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
 if screenstate == True:
-    fontsize=300
-    xpos=20
-    ypos=200
-    root.attributes('-zoomed', True)  # This just maximizes it so we can see the window. It's nothing to do with fullscreen.
+    fontsize=int(screen_height/5) #300 
+    xpos=int(screen_width/6) # 20
+    ypos=int(screen_width/3) # 200
+    #root.attributes('-zoomed', True)  # This just maximizes it so we can see the window. It's nothing to do with fullscreen.
     root.attributes("-fullscreen", screenstate)
 else:
     fontsize=30
@@ -261,17 +269,17 @@ tkFont.families()
 letterfont = tkFont.Font(family="Noto Mono", size = fontsize)
 #letterfont = tkFont.Font(family="Carlito", size = fontsize)
 letterwidth = letterfont.measure("0")+20
-pinballImg=ImageTk.PhotoImage(file="/home/pi/ABC-Flipper/img/pinball2.png")
+pinballImg=ImageTk.PhotoImage(file=getPath("../img/pinball2.png"))
 
 pygame.mixer.init()
 playSound("w5")
 
 root.bind("<F11>", toggle_fullscreen)
 root.bind("<Escape>", end_fullscreen)
-root.bind("<F1>", button1_pressed)
-root.bind("<F2>", button2_pressed)
+root.bind("<KeyPress>", keydown)
+root.bind("<KeyRelease>", keyup)
 
-text_file = open("/home/pi/ABC-Flipper/src/worte.txt", "r")
+text_file = open(getPath("worte.txt"), "r")
 lines = text_file.readlines()
 text_file.close()
 lines[:] = [x.upper().rstrip("\n") for x in lines if x.strip()]
@@ -286,16 +294,26 @@ updatePinballs()
 
 
 def processGameEvents():
-    global winAnim, lives
-    if (ser.inWaiting() > 0):
-        data_str = ser.read(ser.inWaiting()).decode('ascii') 
-        #print("Serial incoming:" + data_str) #, end='')
+    global winAnim, lives, keyPressed
+    
+    userInput=""
+    if (runningOnRaspi==1) and (ser.inWaiting() > 0):
+        userInput = ser.read(ser.inWaiting()).decode('ascii') 
+        #print("Serial incoming:" + userInput) #, end='')
+    if (runningOnRaspi==0) and (keyPressed != ""):
+        userInput=keyPressed
+        print ("press detected")
+        keyPressed=""
+        
+    if userInput != "":
         try:
-            i=int(data_str)
-            #if (i==3):
+            print ("trying int")
+            inputNumber=int(userInput)
+            print ("int detected")
+            #if (inputNumber==3):
             #    kickLetter()
             #    playSound("t2")
-            if (i==0) and (lives==0):
+            if (inputNumber==0) and (lives==0):
                 playSound("n3")
                 lives=3
                 print ("GAME STARTED !! Lives left: " + str(lives))
@@ -305,7 +323,7 @@ def processGameEvents():
 
             if (lives>0):
                 
-                if (i==1):
+                if (inputNumber==1):
                     lives=lives-1
                     print ("BALL LOST! Lives left: " + str(lives))
                     if (lives>0):
@@ -315,26 +333,26 @@ def processGameEvents():
                         updateLetters("*****")
                     updatePinballs()
 
-
-                if (i==2):
+                if (inputNumber==2):
                     changeLetter()
                     playSound("m1")
 
-                if (i==3):
+                if (inputNumber==3):
                     switchLetter()
                     playSound("m2")
 
-                if i>=4 and i<4+maxTargets:
-                    addLetter(i-4)
+                if inputNumber>=4 and inputNumber<4+maxTargets:
+                    addLetter(inputNumber-4)
                     updatePoints(10);
                     
-                if (i==9):         # TBD
+                if (inputNumber==9):         # TBD
                     playSound("w1")
                     renewTargets()
                     
         except ValueError as e:
-            s=str(data_str)
-            if (s=='s'):
+            print ("string detected")
+            inputString=str(userInput)
+            if (inputString=='s'):
                 print ("start signal received")
                 updatePoints(0)
 
@@ -354,7 +372,6 @@ root.mainloop()
 
 
 
-# root.geometry("400x300")
 # root.configure(bg='blue')
 # tkCanvas.move(myrect,1,0)
 # tkCanvas.delete("all")
