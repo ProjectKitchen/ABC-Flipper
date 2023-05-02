@@ -1,26 +1,41 @@
 
 $fs = 0.01;
 
+
+
+l=54;
+w=45;
+h=30;
+add_l=33;
+add_w=27;
+letterHole=13;
+
+
 difference() {
 
   difference() {
-    color("red", alpha=0.5)
+    color("red")
           translate ([-0, -0, 0])
-            resize(newsize=[14,10,4]) sphere(r=1);
+            resize(newsize=[l+add_l,w+add_w,h]) sphere(r=1);
 
-    translate ([0,0,-5.5])
-         resize ([15, 15, 10])  cube(1, center=true);
+    union() {
+      translate ([0,0,8])
+         resize ([l, w, h])  cube(1, center=true);
 
-//    color("green", alpha=0.5)
-//          translate ([-0, 0, -1])
-//            resize(newsize=[13,9,3]) sphere(r=1);
+      translate ([0,-83,0]) rotate ([-10,0,0])
+         resize ([100, 100, 100])  cube(1, center=true);
+
+      translate ([0,0,-37]) 
+         resize ([100, 100, 50])  cube(1, center=true);
+      }
     }
 
 
     union() {
-        translate ([-0, -0, -0.5])
-          linear_extrude(4) 
-            circle(3);
+        translate ([-0, -0, -50])
+          linear_extrude(100) 
+            circle(letterHole);
+/*
         translate ([-4, -3, 0])
             cylinder(h=5,r=0.5, center=true);
         translate ([4, -3, 0])
@@ -29,13 +44,15 @@ difference() {
             cylinder(h=5,r=0.5, center=true);
         translate ([4, 3, 0])
             cylinder(h=5,r=0.5, center=true);
-
-        translate ([0,0,-1])
-            resize ([9, 7, 3])  cube(1, center=true);
+*/
+        translate ([0,0,-100])
+            resize ([l, w, h])  cube(1, center=true);
 
     }
 }
 
+
+translate ([0,-28,0]) rotate([80,0,0])resize ([40,15,10]) cylinder(1,1,1);
 
 
 /*
