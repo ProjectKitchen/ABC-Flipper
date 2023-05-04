@@ -1,10 +1,10 @@
 
 $fs = 0.01;
-
+$fn = 80 ;
 
 
 l=54;
-w=45;
+w=46;
 h=30;
 add_l=33;
 add_w=27;
@@ -27,11 +27,20 @@ difference() {
 
       translate ([0,0,-37]) 
          resize ([100, 100, 50])  cube(1, center=true);
+        
       }
     }
 
 
     union() {
+
+   translate ([15,-20,-2.5]) rotate([90,0,0]) cylinder(10,2.5,2.5);
+   translate ([-15,-20,-2.5]) rotate([90,0,0]) cylinder(10,2.5,2.5);        
+
+   translate ([0,0,55])
+            resize ([100, 100, 100])  cube(1, center=true);
+
+
         translate ([-0, -0, -50])
           linear_extrude(100) 
             circle(letterHole);
@@ -52,7 +61,7 @@ difference() {
 }
 
 
-translate ([0,-28,0]) rotate([80,0,0])resize ([40,15,10]) cylinder(1,1,1);
+translate ([0,-29,0]) rotate([90,0,0])resize ([20,10,30]) cylinder(1,1,1);
 
 
 /*

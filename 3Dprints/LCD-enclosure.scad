@@ -1,28 +1,29 @@
 
 $fs = 0.01;
+$fn = 80;
 
 l=54;
-w=45;
+w=46;
 h=20;
 edge=2;
 letterHole=13;
-
+thickness=3.5;
 
 
 module front() {
     difference() {
-        linear_extrude(h)  square ([l+2,w+2],true);
+        linear_extrude(h)  square ([l+thickness,w+thickness],true);
         union() {
             translate ([-0, -0, -0.5])
               linear_extrude(l+1) {
-                translate ([-1, -0, -0]) circle(letterHole);
-                translate ([l/2-edge+1,w/2-edge+1,0])
-                    difference() {square(edge+1);circle(edge);}
-                translate ([-(l/2-edge+1),(w/2-edge+1),0])
+                translate ([0, -0, -0]) circle(letterHole);
+                translate ([l/2-edge+2,w/2-edge+2,0])
+                    difference() {square(edge+2);circle(edge);}
+                translate ([-(l/2-edge+2),(w/2-edge+2),0])
                     rotate(90) difference() {square(edge+1);circle(edge);}
-                translate ([-(l/2-edge+1),-(w/2-edge+1),0])
+                translate ([-(l/2-edge+2),-(w/2-edge+2),0])
                     rotate(180) difference() {square(edge+1);circle(edge);}
-                translate ([(l/2-edge+1),-(w/2-edge+1),0])
+                translate ([(l/2-edge+2),-(w/2-edge+2),0])
                     rotate(270) difference() {square(edge+1);circle(edge);}
             }
         }
@@ -33,7 +34,7 @@ module front() {
 module stand() {
  rotate([2,0,0]) 
  difference() {
-    color("red")   rotate([90,0,0]) linear_extrude(20,true, 8, true, 2, 1) scale([2,1,1]) circle(d=10);
+    color("red")   rotate([90,0,0]) linear_extrude(30) scale([2,2,1]) circle(d=9);
  }
 }
 
@@ -42,14 +43,18 @@ difference() {
     // box
     difference() {
         front();
-        translate ([0,0,-2])
+        translate ([0,0,-3.5])
            linear_extrude(h)  square ([l,w],true);
     }
 
     // stand
-     translate ([0,-22.6,7]) stand();
+     translate ([0,-24,10]) stand();
    }
-   translate ([0,-10,7]) rotate([90,0,0]) cylinder(50,5,5);
+  union() {
+   translate ([0,-20,9]) rotate([90,0,0]) cylinder(50,6,6);
+   translate ([15,-20,13.5]) rotate([90,0,0]) cylinder(50,2.5,2.5);
+   translate ([-15,-20,13.5]) rotate([90,0,0]) cylinder(50,2.5,2.5);
+  }
 }
 
 
