@@ -1,10 +1,20 @@
 
 
-#define FIRST_BUTTON 2
-#define NUM_BUTTONS 9
+#define FIRST_BUTTON 14
+#define NUM_BUTTONS 10
 
-#define FIRST_LIGHT 14
+#define FIRST_RELAIS 2
+#define NUM_RELAIS   6
+
+#define FIRST_LIGHT 2
 #define NUM_LIGHTS 4
+
+#define THROWER1_BUTTON 16 
+#define THROWER2_BUTTON 18 
+
+#define THROWER1_RELAIS 6 
+#define THROWER2_RELAIS 7 
+
 
 #define DEBOUNCE_TIME 100
 
@@ -12,17 +22,15 @@ int blinkIdleTime=2000;
 int blinkActiveTime=500;
 int blinkWinTime=200;
 
-const int latchPin = 12; //Pin connected to latch pin (ST_CP) of 74HC595
-const int clockPin = 11; //Pin connected to clock pin (SH_CP) of 74HC595
-const int dataPin = 13;  //Pin connected to Data in (DS) of 74HC595
-
-
-byte Tab[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xff};
-
 int buttonState[NUM_BUTTONS]={HIGH};
 uint32_t buttonDebounce[NUM_BUTTONS]={0};
 
-int blinkState='a';
+#define GAMESTATE_IDLE    'a'
+#define GAMESTATE_FLIPPER 'b'
+#define GAMESTATE_ANAGRAM 'c'
+#define GAMESTATE_GAMEWON 'd'
+
+int gameState=GAMESTATE_IDLE;
 int blinkCount=0;
 int blinkPos=0;
 
@@ -30,32 +38,23 @@ int blinkPos=0;
 void setup() {
 
   Serial.begin(115200);
+  Serial1.begin (9600);
+  
   for (int i=FIRST_BUTTON;i<FIRST_BUTTON+NUM_BUTTONS; i++) {
     pinMode(i,INPUT_PULLUP);
   }
   
-  for (int i=FIRST_LIGHT;i<FIRST_LIGHT+NUM_LIGHTS; i++) {
+  for (int i=FIRST_RELAIS;i<FIRST_RELAIS+NUM_RELAIS; i++) {
     pinMode(i,OUTPUT); digitalWrite(i,HIGH);
   }
-
-
-  pinMode(latchPin, OUTPUT);
-  pinMode(dataPin, OUTPUT);
-  pinMode(clockPin, OUTPUT);
-
-  digitalWrite(latchPin, LOW);
-  for (int i=0; i<8; i++) shiftOut(dataPin, clockPin, MSBFIRST, 0xff);
-  digitalWrite(latchPin, HIGH);
 
  Serial.print('s');
 }
 
 void processBlinks() {
-  switch (blinkState) {
+  switch (gameState) {
 
-    case 'a':
-      break;
-    case 'b':  
+    case GAMESTATE_IDLE:
       if (++blinkCount>blinkIdleTime) {
         blinkCount=0;
         digitalWrite(FIRST_LIGHT+blinkPos,HIGH);
@@ -63,8 +62,11 @@ void processBlinks() {
         digitalWrite(FIRST_LIGHT+blinkPos,LOW);
       }
       break;
+    case GAMESTATE_FLIPPER:  
+      // TBD: light effects during game?
+      break;
 
-    case 'c':  
+    case GAMESTATE_ANAGRAM:  
       if (++blinkCount>blinkActiveTime) {
         blinkCount=0;
         digitalWrite(FIRST_LIGHT+blinkPos,HIGH);
@@ -73,21 +75,19 @@ void processBlinks() {
       }
       break;
 
-    case 'd':  
+    case GAMESTATE_GAMEWON:  
       if (++blinkCount>blinkWinTime) {
         blinkCount=0;
         for (int i=0; i<NUM_LIGHTS; i++) 
           digitalWrite(FIRST_LIGHT+i,HIGH);
-        if (++blinkPos>=5) { blinkPos=0; blinkCount=0; blinkState='a'; }
+        if (++blinkPos>=5) { blinkPos=0; blinkCount=0; gameState='a'; }
 
       }
       if (blinkCount==blinkWinTime/2) {
         for (int i=0; i<NUM_LIGHTS; i++) 
           digitalWrite(FIRST_LIGHT+i,LOW);
       }
-
       break;
-    
   }
 }
 
@@ -106,29 +106,26 @@ void loop() {
         }
       }
     }
-
   }
 
   if (Serial.available()) {
     int c=Serial.read();
-    if ((c>='0') && (c<='9')) {
-      int bitToSet = c - 48;
-      // write to the shift register with the correct bit set high:
-      digitalWrite(latchPin, LOW);
-      // shift the bits out:
-      shiftOut(dataPin, clockPin, MSBFIRST, Tab[bitToSet]);
-        // turn on the output so the LEDs can light up:
-      digitalWrite(latchPin, HIGH);
-    }
-    else if ((c>='a') && (c<='d')) {
-      blinkState=c;
+    if ((c>='a') && (c<='d')) {
+      gameState=c;
       blinkPos=0;blinkCount=0;
-    }
-    
+    } else Serial1.write((byte)c);    
   }
 
-  processBlinks();
+  if (gameState==GAMESTATE_FLIPPER) {
+     // control throwers via flipper buttons!
+     digitalWrite (THROWER1_RELAIS, digitalRead(THROWER1_BUTTON));
+     digitalWrite (THROWER2_RELAIS, digitalRead(THROWER2_BUTTON));
+  } else {
+     // deactivate throwers!
+     digitalWrite (THROWER1_RELAIS, HIGH);   
+     digitalWrite (THROWER2_RELAIS, HIGH); 
+  }
   
+  processBlinks();
   delay(1);   //  1kHz main loop
-
 }
