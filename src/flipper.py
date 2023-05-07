@@ -23,8 +23,12 @@ else:
 
 raspiPortName="/dev/ttyACM0"
 otherPortName="COM17"
-  
-screenstate = True
+GAMESTATE_IDLE =    'a'
+GAMESTATE_FLIPPER = 'b'
+GAMESTATE_ANAGRAM = 'c'
+GAMESTATE_GAMEWON = 'd'
+gameSate= GAMESTATE_IDLE
+screenstate = True        # True is fullscreen
 textcolor="yellow"
 boardcolor="gray"
 activeboardcolor="red"
@@ -63,7 +67,17 @@ def displayLCD(pos,msg):
     if runningOnRaspi==0:
         return   
     sendString=str(pos)+msg
-    print("sending to Serial:"+sendString)
+    # print("sending to Serial:"+sendString)
+    ser.write(sendString.encode())
+    return
+
+def setGameState(state):
+    global gameState
+    gameState=state
+    if runningOnRaspi==0:
+        return   
+    sendString=str(state)
+    print("sending gamestate to serial: "+sendString)
     ser.write(sendString.encode())
     return
 
@@ -228,6 +242,7 @@ def newGameRound():
     actword=""
     renewTargets()
     updateLetters(actword)
+    setGameState(GAMESTATE_FLIPPER);
 
 def renewTargets():
     global actTargets
@@ -253,9 +268,14 @@ def ballLost():
     print ("BALL LOST! Lives left: " + str(lives))
     if (lives>0):
         playSound("t5")
+        setGameState(GAMESTATE_FLIPPER);
+        newGameRound()
+        tkCanvas.itemconfigure(clockID,extent=0)
+
     else:
         playSound("t3")
         updateLetters("*****")
+        setGameState(GAMESTATE_IDLE);
     updatePinballs()
 
 
@@ -294,15 +314,15 @@ def processGameEvents():
                 if (inputNumber==1):
                     ballLost()
 
-                if (inputNumber==2):
+                if (inputNumber==2) and (gameState==GAMESTATE_ANAGRAM):
                     switchLetterRight()
                     playSound("m2")
 
-                if (inputNumber==3):
+                if (inputNumber==3) and (gameState==GAMESTATE_ANAGRAM):
                     changeLetter()
                     playSound("m1")
 
-                if (inputNumber==4):
+                if (inputNumber==4) and (gameState==GAMESTATE_ANAGRAM):
                     switchLetterLeft()
                     playSound("m2")
 
@@ -310,6 +330,7 @@ def processGameEvents():
                     addLetter(inputNumber-5)
                     updatePoints(10);
                     if (len(actword) == maxLetters):
+                        setGameState(GAMESTATE_ANAGRAM)
                         tkCanvas.abs_move(clockID,pinballXPos+(lives-1)*pinballWidth-5, int(pinballYPos-clockSize/2)-5)
                         clockAnim=3600
                     
@@ -336,10 +357,6 @@ def processGameEvents():
         tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/10))
         if (clockAnim==0):
             ballLost()
-            if (lives>0):
-                newGameRound()
-                tkCanvas.itemconfigure(clockID,extent=0)
-
             
 
     tkCanvas.after(10, processGameEvents)
