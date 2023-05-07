@@ -332,7 +332,7 @@ def processGameEvents():
                     if (len(actword) == maxLetters):
                         setGameState(GAMESTATE_ANAGRAM)
                         tkCanvas.abs_move(clockID,pinballXPos+(lives-1)*pinballWidth-5, int(pinballYPos-clockSize/2)-5)
-                        clockAnim=3600
+                        clockAnim=7200
                     
                 if (inputNumber==10):         # TBD
                     playSound("w1")
@@ -354,7 +354,7 @@ def processGameEvents():
 
     if clockAnim>0:
         clockAnim=clockAnim-1
-        tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/10))
+        tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/20))
         if (clockAnim==0):
             ballLost()
             
