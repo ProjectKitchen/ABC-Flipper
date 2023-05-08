@@ -10,6 +10,9 @@
 //#include <Fonts/FreeSansBold24pt7b.h>
 #include "FreeSansBold24pt7b.h"
 
+#define CMD_ROTATE '7'
+#define CMD_GOIDLE '8'
+
 // These pins will also work for the 1.8" TFT shield.
 #define TFT_CS 10
 #define TFT_RST -1  // Or set to -1 and connect to Arduino RESET pin
@@ -30,6 +33,7 @@ uint8_t displayNum = 0;
 int mode = MODE_IDLE;
 uint32_t animTimestamp = 0;
 int animState=0;
+int actRotation=3;
 
 void setup(void) {
   Serial.begin(9600);
@@ -42,13 +46,14 @@ void setup(void) {
   tft.fillScreen(ST77XX_BLACK);
 
   delay(500);
-  tft.setRotation(3);  // rotate 270 degrees
+  randomSeed(analogRead(0));
+  tft.setRotation(actRotation); 
   tft.setFont(&FreeSansBold24pt7b);
   tft.setTextSize(2);
   //tft.setTextSize(13);
 
   tft.fillScreen(ST77XX_BLACK);
-  animTimestamp = millis();
+  animTimestamp = 0;
 
   /*
     for (int i=65;i<255;i++) {
@@ -71,8 +76,8 @@ void loop() {
   else {
     switch (mode) {
       case MODE_IDLE:
-        if (millis() - animTimestamp >= 500) {
-          animTimestamp = millis();
+        if (millis() > animTimestamp) {
+          animTimestamp = millis() + random(300,5000);
           animState++;
           if (animState == 1) {
             tft.setCursor(XPOS, YPOS);
@@ -89,6 +94,21 @@ void loop() {
       case MODE_HIT:
       break;
     }
+    return;
+  }
+
+  if (input == CMD_ROTATE) {
+    actRotation=(actRotation+1)%4;
+    tft.setRotation(actRotation); 
+    tft.fillScreen(ST77XX_BLACK);
+    Serial1.write(CMD_ROTATE);    
+    return;
+  }
+
+  if (input == CMD_GOIDLE) {
+    mode=MODE_IDLE;
+    tft.fillScreen(ST77XX_BLACK);
+    Serial1.write(CMD_GOIDLE);
     return;
   }
 

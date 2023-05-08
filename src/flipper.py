@@ -23,6 +23,10 @@ else:
 
 raspiPortName="/dev/ttyACM0"
 otherPortName="COM17"
+
+
+CMD_ROTATE='7'
+CMD_GOIDLE='8'
   
 screenstate = True
 textcolor="yellow"
@@ -59,19 +63,27 @@ def getPath(name):
     return (str(Path(__file__).resolve().parent.joinpath(name)))
 
 
-def displayLCD(pos,msg):
+def sendLCDLetter(pos,letter):
     if runningOnRaspi==0:
         return   
-    sendString=str(pos)+msg
+    sendString=str(pos)+letter
     print("sending to Serial:"+sendString)
     ser.write(sendString.encode())
     return
 
+def sendLCDCommand(cmd):
+    if runningOnRaspi==0:
+        return   
+    sendString=cmd
+    print("sending command to Serial:"+sendString)
+    ser.write(sendString.encode())
+    return
+    
 def printTargetsLCD():
     print ("Act Targets:", end="")
     for i in range (maxTargets):
         print (str(actTargets[maxTargets-1-i]) , end="")
-        displayLCD(i,actTargets[i])
+        sendLCDLetter(i+1,actTargets[i])
     print (" ")
 
 
@@ -256,6 +268,7 @@ def ballLost():
     else:
         playSound("t3")
         updateLetters("*****")
+        sendLCDCommand(CMD_GOIDLE);
     updatePinballs()
 
 
@@ -300,7 +313,7 @@ def processGameEvents():
 
                 if (inputNumber==3):
                     changeLetter()
-                    playSound("m1")
+                    playSound("trommel")
 
                 if (inputNumber==4):
                     switchLetterLeft()
