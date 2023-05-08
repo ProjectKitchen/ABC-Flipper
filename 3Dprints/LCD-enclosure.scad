@@ -4,7 +4,7 @@ $fn = 80;
 
 l=54;
 w=46;
-h=20;
+h=22;
 edge=2;
 letterHole=13;
 thickness=3.5;
@@ -34,7 +34,7 @@ module front() {
 module stand() {
  rotate([2,0,0]) 
  difference() {
-    color("red")   rotate([90,0,0]) linear_extrude(30) scale([2,2,1]) circle(d=9);
+    color("red")   rotate([90,0,0]) linear_extrude(20) scale([2,2,1]) circle(d=9);
  }
 }
 
@@ -43,7 +43,7 @@ difference() {
     // box
     difference() {
         front();
-        translate ([0,0,-3.5])
+        translate ([0,0,-3])
            linear_extrude(h)  square ([l,w],true);
     }
 
@@ -52,10 +52,17 @@ difference() {
    }
   union() {
    translate ([0,-20,9]) rotate([90,0,0]) cylinder(50,6,6);
-   translate ([15,-20,13.5]) rotate([90,0,0]) cylinder(50,2.5,2.5);
-   translate ([-15,-20,13.5]) rotate([90,0,0]) cylinder(50,2.5,2.5);
+   translate ([17,-20,9]) rotate([90,0,0]) cylinder(50,2.1,2.1);
+   translate ([-17,-20,9]) rotate([90,0,0]) cylinder(50,2.1,2.1);
   }
 }
+
+
+color("blue")
+ translate ([0,-80,0]) linear_extrude(2)  square ([l+thickness,w+thickness],true);
+
+ translate ([0,-80 -w/2 +1.5,2]) linear_extrude(4)  square ([l-1,3],true);
+ translate ([0,-80 +w/2 -1.5,2]) linear_extrude(4)  square ([l-1,3],true);
 
 
 /*
