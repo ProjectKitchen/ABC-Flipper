@@ -4,7 +4,7 @@
 #define NUM_BUTTONS 10
 
 #define FIRST_RELAIS 2
-#define NUM_RELAIS   6
+#define NUM_RELAIS   8
 
 #define FIRST_LIGHT 2
 #define NUM_LIGHTS 4
@@ -12,8 +12,13 @@
 #define THROWER1_BUTTON 16 
 #define THROWER2_BUTTON 18 
 
-#define THROWER1_RELAIS 6 
-#define THROWER2_RELAIS 7 
+
+#define BELL_RELAIS 8 
+#define BALL_RELAIS 9 
+#define THROWER1_RELAIS 7
+#define THROWER2_RELAIS 6 
+
+#define BELL_ACTIVE_TIME 20 
 
 
 #define DEBOUNCE_TIME 100
@@ -21,6 +26,7 @@
 int blinkIdleTime=2000;
 int blinkActiveTime=500;
 int blinkWinTime=200;
+int bellOnTime=0, ballOnTime=0;
 
 int buttonState[NUM_BUTTONS]={HIGH};
 uint32_t buttonDebounce[NUM_BUTTONS]={0};
@@ -28,7 +34,11 @@ uint32_t buttonDebounce[NUM_BUTTONS]={0};
 #define GAMESTATE_IDLE    'a'
 #define GAMESTATE_FLIPPER 'b'
 #define GAMESTATE_ANAGRAM 'c'
-#define GAMESTATE_GAMEWON 'd'
+#define GAMESTATE_WON     'd'
+#define GAMESTATE_LOST    'e'
+
+#define CMD_TRIGGER_BALL  'f'
+#define CMD_TRIGGER_BELL  'g'
 
 int gameState=GAMESTATE_IDLE;
 int blinkCount=0;
@@ -75,7 +85,7 @@ void processBlinks() {
       }
       break;
 
-    case GAMESTATE_GAMEWON:  
+    case GAMESTATE_WON:  
       if (++blinkCount>blinkWinTime) {
         blinkCount=0;
         for (int i=0; i<NUM_LIGHTS; i++) 
@@ -88,6 +98,8 @@ void processBlinks() {
           digitalWrite(FIRST_LIGHT+i,LOW);
       }
       break;
+    case GAMESTATE_LOST:
+    break;  
   }
 }
 
@@ -110,10 +122,29 @@ void loop() {
 
   if (Serial.available()) {
     int c=Serial.read();
-    if ((c>='a') && (c<='d')) {
+    if ((c>='a') && (c<='e')) {
       gameState=c;
       blinkPos=0;blinkCount=0;
-    } else Serial1.write((byte)c);    
+    } 
+    else if (c==CMD_TRIGGER_BELL) {
+      digitalWrite(BELL_RELAIS, LOW);
+      bellOnTime=100;      
+    }
+    else if (c==CMD_TRIGGER_BALL) {
+      digitalWrite(BALL_RELAIS, LOW);
+      ballOnTime=100;      
+    }
+    else Serial1.write((byte)c);    
+  }
+
+  if (bellOnTime) {
+    bellOnTime--;
+    if(!bellOnTime) digitalWrite(BELL_RELAIS,HIGH);
+  }
+
+  if (ballOnTime) {
+    ballOnTime--;
+    if(!ballOnTime) digitalWrite(BALL_RELAIS,HIGH);
   }
 
   if (gameState==GAMESTATE_FLIPPER) {

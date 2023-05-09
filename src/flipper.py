@@ -25,14 +25,18 @@ raspiPortName="/dev/ttyACM0"
 otherPortName="COM17"
 
 
-CMD_ROTATE='7'
-CMD_GOIDLE='8'
-  
-GAMESTATE_IDLE=1
-GAMESTATE_FLIPPER=2
-GAMESTATE_ANAGRAM=3
-GAMESTATE_LOST=4
-GAMESTATE_WON=5
+CMD_LCD_ROTATE='7'
+CMD_LCD_GOIDLE='8'
+
+GAMESTATE_IDLE =   'a'
+GAMESTATE_FLIPPER ='b'
+GAMESTATE_ANAGRAM = 'c'
+GAMESTATE_WON = 'd'
+GAMESTATE_LOST = 'e'
+
+CMD_TRIGGER_BALL='f'
+CMD_TRIGGER_BELL='g'
+
 
 screenstate = True
 textcolor="yellow"
@@ -67,7 +71,7 @@ letterwidth=0
 modifyLetter=0   
 actTargets = array.array('u',('x' for i in range(0,maxTargets))) 
 keyPressed=""
-
+ballLostBypass=0
 
 def getPath(name):
     return (str(Path(__file__).resolve().parent.joinpath(name)))
@@ -81,11 +85,11 @@ def sendLCDLetter(pos,letter):
     ser.write(sendString.encode())
     return
 
-def sendLCDCommand(cmd):
+def sendCommand(cmd):
     if runningOnRaspi==0:
         return   
     sendString=cmd
-    #print("sending command to Serial:"+sendString)
+    print("sending command to Serial:"+sendString)
     ser.write(sendString.encode())
     return
     
@@ -251,6 +255,8 @@ def newGameRound():
     tkCanvas.itemconfigure(coinID,state='hidden')
     gameState=GAMESTATE_FLIPPER
     updateLetters(actword)
+    sendCommand(CMD_TRIGGER_BALL)
+    sendCommand(GAMESTATE_FLIPPER);
 
 def renewTargets():
     global actTargets
@@ -295,10 +301,14 @@ def ballLost():
     print ("BALL LOST! Lives left: " + str(lives))
     if (lives>0):
         playSound("t5")
+        pygame.time.delay(2000)
+        sendCommand(CMD_TRIGGER_BALL)
+
     else:
         playSound("t3")
         updateLetters("*****")
-        sendLCDCommand(CMD_GOIDLE);
+        sendCommand(CMD_LCD_GOIDLE);
+        sendCommand(GAMESTATE_IDLE);
         gameState=GAMESTATE_IDLE
         tkCanvas.itemconfigure(clockID,state='hidden')      
         tkCanvas.itemconfigure(coinID,state='normal')
@@ -311,7 +321,7 @@ def ballLost():
 '''
 
 def processGameEvents():
-    global winAnim, looseAnim, clockAnim, lives, keyPressed, points, gameState
+    global winAnim, looseAnim, clockAnim, lives, keyPressed, points, gameState, ballLostBypass
     
     userInput=""
     if (serialPortOpen==1) and (ser.inWaiting() > 0):
@@ -363,7 +373,8 @@ def processGameEvents():
 
             if (gameState==GAMESTATE_FLIPPER):
 
-                if (inputNumber==1):
+                if (inputNumber==1) and (ballLostBypass==0):
+                    ballLostBypass=200
                     ballLost()
 
                 if inputNumber>=5 and inputNumber<5+maxTargets:
@@ -371,6 +382,7 @@ def processGameEvents():
                     updatePoints(10);
                     if (len(actword) == maxLetters):
                         gameState=GAMESTATE_ANAGRAM
+                        sendCommand(GAMESTATE_ANAGRAM);
                         playSound("gong")
                         updateLetters(actword)
                         tkCanvas.itemconfigure(clockID,state='normal')      
@@ -395,6 +407,8 @@ def processGameEvents():
             updateLetters(goalWord)
             looseAnim=200           
 
+    if ballLostBypass>0:
+        ballLostBypass=ballLostBypass-1
 
     if (gameState==GAMESTATE_IDLE):
         animCoin()
