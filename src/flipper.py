@@ -28,6 +28,12 @@ otherPortName="COM17"
 CMD_ROTATE='7'
 CMD_GOIDLE='8'
   
+GAMESTATE_IDLE=1
+GAMESTATE_FLIPPER=2
+GAMESTATE_ANAGRAM=3
+GAMESTATE_LOST=4
+GAMESTATE_WON=5
+
 screenstate = True
 textcolor="yellow"
 boardcolor="gray"
@@ -37,9 +43,12 @@ maxLetters=5
 maxTargets=5
 maxLives=3
 lives=0
+gameState=GAMESTATE_IDLE
 points=0
 winAnim=0
+looseAnim=0
 clockAnim=0
+coinAnim=0
 
 pinballXPos=80
 pinballYPos=70
@@ -52,6 +61,7 @@ pinballIDs = array.array('i',(0 for i in range(0,maxLives)))
 boxID = 0
 pointsID=0
 clockID = 0
+coinID=0
 
 letterwidth=0
 modifyLetter=0   
@@ -67,7 +77,7 @@ def sendLCDLetter(pos,letter):
     if runningOnRaspi==0:
         return   
     sendString=str(pos)+letter
-    print("sending to Serial:"+sendString)
+    #print("sending to Serial:"+sendString)
     ser.write(sendString.encode())
     return
 
@@ -75,7 +85,7 @@ def sendLCDCommand(cmd):
     if runningOnRaspi==0:
         return   
     sendString=cmd
-    print("sending command to Serial:"+sendString)
+    #print("sending command to Serial:"+sendString)
     ser.write(sendString.encode())
     return
     
@@ -191,7 +201,7 @@ def updatePoints(p):
     tkCanvas.itemconfigure(pointsID,text=str(points).zfill(8))   
 
 def createScene():
-    global letterIDs, boxID, pinballID, pointsID, clockID
+    global letterIDs, boxID, pinballID, pointsID, clockID, coinID
     for i in range (maxLetters):
         letterIDs[i] = tkCanvas.create_text(lettersXPos+10+letterwidth*i, lettersYPos, text=" ", anchor="nw", font=letterfont, fill=textcolor)
         x0, y0, x1, y1 = tkCanvas.bbox(letterIDs[i])
@@ -201,8 +211,9 @@ def createScene():
     for i in range (maxLives):
         pinballIDs[i]=tkCanvas.create_image(pinballXPos+i*pinballWidth, pinballYPos, image=pinballImg, anchor="center")
 
-    pointsID=tkCanvas.create_text(int(screen_width/3*2), 40, text="000000000", anchor="nw", font=pointfont, fill="#C00000")
+    pointsID=tkCanvas.create_text(int(screen_width/3*2), 40, text="000000000", anchor="nw", font=pointfont, fill="#FF2020")
     clockID =tkCanvas.create_arc(0,pinballYPos, clockSize,pinballYPos+clockSize, start=90, extent=0, fill="#000000")
+    coinID =tkCanvas.create_image(pinballXPos, pinballYPos, image=coinImg, anchor="center")
 
 def updateLetters(string):
     global winAnim, clockAnim
@@ -211,19 +222,17 @@ def updateLetters(string):
     for i in range(len(string),maxLetters):
         tkCanvas.itemconfigure(letterIDs[i],text=' ')
     for i in range(maxLetters):
-        if i==modifyLetter:
+        if (i==modifyLetter) and (gameState==GAMESTATE_ANAGRAM):
             tkCanvas.itemconfigure(boardIDs[i],fill=activeboardcolor)
         else:
             tkCanvas.itemconfigure(boardIDs[i],fill=boardcolor)
         
-    tkCanvas.abs_move(boxID,lettersXPos+modifyLetter*letterwidth, lettersYPos+letterFontSize*1.7)
-    if (string in lines):
-        print (" *******  WORD FOUND !! ***********")
-        clockAnim=0
-        tkCanvas.itemconfigure(clockID,extent=0)
-        updatePoints(1000);
-        playSound("w4")
-        winAnim=100      # start winning animation, see processGameEvents()
+    if gameState==GAMESTATE_ANAGRAM:
+        tkCanvas.itemconfigure(boxID,state='normal') 
+        tkCanvas.abs_move(boxID,lettersXPos+modifyLetter*letterwidth, lettersYPos+letterFontSize*1.7)
+    else:
+        tkCanvas.itemconfigure(boxID,state='hidden') 
+    
 
 def updatePinballs():
     for i in range (maxLives):
@@ -232,13 +241,15 @@ def updatePinballs():
         else:
             tkCanvas.itemconfigure(pinballIDs[i],state='hidden')
 
-
 def newGameRound():
-    global actword, goalWord
+    global actword, goalWord, gameState
     goalWord=lines[randrange(len(lines))]
     print ("GOAL="+goalWord)
     actword=""
     renewTargets()
+    tkCanvas.itemconfigure(clockID,state='hidden')      
+    tkCanvas.itemconfigure(coinID,state='hidden')
+    gameState=GAMESTATE_FLIPPER
     updateLetters(actword)
 
 def renewTargets():
@@ -250,7 +261,16 @@ def renewTargets():
     printTargetsLCD()
 
         
-def animLetters():
+def animCoin():
+    global coinAnim
+    coinAnim=coinAnim+1
+    if coinAnim % 200 == 0:
+        tkCanvas.itemconfigure(coinID,state='hidden')      
+        coinAnim=0
+    if coinAnim % 200 == 50:
+        tkCanvas.itemconfigure(coinID,state='normal')      
+
+def animLettersWon():
     global winAnim
     if winAnim % 10 == 0:
         for i in range (len(actword)):
@@ -259,8 +279,18 @@ def animLetters():
         for i in range (len(actword)):
             tkCanvas.itemconfigure(letterIDs[i],fill="black")        
 
+def animLettersLost():
+    global looseAnim
+    if looseAnim % 25 == 0:
+        for i in range (len(actword)):
+            tkCanvas.itemconfigure(letterIDs[i],fill="yellow")        
+    if looseAnim % 25 == 11:
+        for i in range (len(actword)):
+            tkCanvas.itemconfigure(letterIDs[i],fill="red")        
+
+
 def ballLost():
-    global lives
+    global lives, gameState
     lives=lives-1
     print ("BALL LOST! Lives left: " + str(lives))
     if (lives>0):
@@ -269,6 +299,10 @@ def ballLost():
         playSound("t3")
         updateLetters("*****")
         sendLCDCommand(CMD_GOIDLE);
+        gameState=GAMESTATE_IDLE
+        tkCanvas.itemconfigure(clockID,state='hidden')      
+        tkCanvas.itemconfigure(coinID,state='normal')
+
     updatePinballs()
 
 
@@ -277,7 +311,7 @@ def ballLost():
 '''
 
 def processGameEvents():
-    global winAnim, clockAnim, lives, keyPressed, points
+    global winAnim, looseAnim, clockAnim, lives, keyPressed, points, gameState
     
     userInput=""
     if (serialPortOpen==1) and (ser.inWaiting() > 0):
@@ -292,7 +326,7 @@ def processGameEvents():
     if userInput != "":
         try:
             inputNumber=int(userInput)
-            if (inputNumber==0) and (lives==0):
+            if (inputNumber==0) and (gameState==GAMESTATE_IDLE):
                 playSound("n3")
                 lives=3
                 points=0
@@ -302,14 +336,11 @@ def processGameEvents():
                 lives=3
                 updatePinballs()
 
-            if (lives>0):
+            if (gameState==GAMESTATE_ANAGRAM):
                 
-                if (inputNumber==1):
-                    ballLost()
-
                 if (inputNumber==2):
                     switchLetterRight()
-                    playSound("m2")
+                    playSound("move")
 
                 if (inputNumber==3):
                     changeLetter()
@@ -317,17 +348,35 @@ def processGameEvents():
 
                 if (inputNumber==4):
                     switchLetterLeft()
-                    playSound("m2")
+                    playSound("move")
+
+                if (actword in lines):
+                    print (" *******  WORD FOUND !! ***********")
+                    clockAnim=0
+                    tkCanvas.itemconfigure(clockID,extent=0)
+                    tkCanvas.itemconfigure(clockID,state='hidden')      
+                    updatePoints(1000);
+                    playSound("w4")
+                    gameState=GAMESTATE_WON
+                    winAnim=100      # start winning animation, see processGameEvents()
+
+
+            if (gameState==GAMESTATE_FLIPPER):
+
+                if (inputNumber==1):
+                    ballLost()
 
                 if inputNumber>=5 and inputNumber<5+maxTargets:
                     addLetter(inputNumber-5)
                     updatePoints(10);
                     if (len(actword) == maxLetters):
+                        gameState=GAMESTATE_ANAGRAM
+                        playSound("gong")
+                        updateLetters(actword)
+                        tkCanvas.itemconfigure(clockID,state='normal')      
                         tkCanvas.abs_move(clockID,pinballXPos+(lives-1)*pinballWidth-5, int(pinballYPos-clockSize/2)-5)
                         clockAnim=3600
-                    
-                if (inputNumber==10):         # TBD
-                    playSound("w1")
+                        
                     
         except ValueError as e:
             print ("string detected")
@@ -336,24 +385,41 @@ def processGameEvents():
                 print ("start signal received")
                 updatePoints(0)
 
-    if winAnim>0:
-        animLetters()
+
+    if clockAnim>0:
+        clockAnim=clockAnim-1
+        tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/10))
+        if (clockAnim==0):
+            playSound("n2")
+            gameState=GAMESTATE_LOST
+            updateLetters(goalWord)
+            looseAnim=200           
+
+
+    if (gameState==GAMESTATE_IDLE):
+        animCoin()
+
+    if (gameState==GAMESTATE_LOST):
+        animLettersLost()
+        looseAnim=looseAnim-1
+        if looseAnim==0:
+            ballLost()
+            for i in range (len(actword)):
+                tkCanvas.itemconfigure(letterIDs[i],fill=textcolor)        
+            if (lives>0):
+                newGameRound()
+                # tkCanvas.itemconfigure(clockID,extent=0)
+
+    if (gameState==GAMESTATE_WON):
+        animLettersWon()
         winAnim=winAnim-1
         if winAnim==0:
             for i in range (len(actword)):
                 tkCanvas.itemconfigure(letterIDs[i],fill=textcolor)        
             newGameRound()
 
-    if clockAnim>0:
-        clockAnim=clockAnim-1
-        tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/10))
-        if (clockAnim==0):
-            ballLost()
-            if (lives>0):
-                newGameRound()
-                tkCanvas.itemconfigure(clockID,extent=0)
 
-            
+
 
     tkCanvas.after(10, processGameEvents)
 
@@ -393,6 +459,7 @@ pointfont = tkFont.Font(family="Noto Mono", size = pointFontSize)
 
 letterwidth = letterfont.measure("0")+20
 pinballImg=ImageTk.PhotoImage(file=getPath("../img/pinball1.png"))
+coinImg=ImageTk.PhotoImage(file=getPath("../img/coin.jpg"))
 
 pygame.mixer.init()
 playSound("w5")
@@ -428,7 +495,6 @@ except serial.SerialException as e:
 
 goalWord=lines[randrange(len(lines))]
 createScene()
-newGameRound()
 updateLetters("*****")
 updatePinballs()
 
