@@ -1,22 +1,45 @@
 
 
-#define FIRST_BUTTON 14
-#define NUM_BUTTONS 10
-
-#define FIRST_RELAIS 2
-#define NUM_RELAIS   8
-
-#define FIRST_LIGHT 2
-#define NUM_LIGHTS 4
-
-#define THROWER1_BUTTON 16 
-#define THROWER2_BUTTON 18 
+#define TEENSY2    // for Teensy2.0++ controller!  comment/remove for Teensy 3.2!
 
 
-#define BELL_RELAIS 8 
-#define BALL_RELAIS 9 
-#define THROWER1_RELAIS 7
-#define THROWER2_RELAIS 6 
+#ifdef TEENSY2
+  #define FIRST_BUTTON 4
+  #define NUM_BUTTONS 14
+  
+  #define FIRST_RELAIS 38
+  #define NUM_RELAIS   8
+  
+  #define FIRST_LIGHT 18
+  #define NUM_LIGHTS 4
+  
+  #define THROWER1_BUTTON 6 
+  #define THROWER2_BUTTON 8 
+  
+  
+  #define BELL_RELAIS 38 
+  #define BALL_RELAIS 39 
+  #define THROWER1_RELAIS 40
+  #define THROWER2_RELAIS 41 
+#else
+  #define FIRST_BUTTON 14
+  #define NUM_BUTTONS 10
+  
+  #define FIRST_RELAIS 2
+  #define NUM_RELAIS   8
+  
+  #define FIRST_LIGHT 2
+  #define NUM_LIGHTS 4
+  
+  #define THROWER1_BUTTON 16 
+  #define THROWER2_BUTTON 18 
+  
+  
+  #define BELL_RELAIS 8 
+  #define BALL_RELAIS 9 
+  #define THROWER1_RELAIS 7
+  #define THROWER2_RELAIS 6 
+#endif
 
 #define BELL_ACTIVE_TIME 20 
 
@@ -55,6 +78,10 @@ void setup() {
   }
   
   for (int i=FIRST_RELAIS;i<FIRST_RELAIS+NUM_RELAIS; i++) {
+    pinMode(i,OUTPUT); digitalWrite(i,HIGH);
+  }
+
+  for (int i=FIRST_LIGHT;i<FIRST_LIGHT+NUM_LIGHTS; i++) {
     pinMode(i,OUTPUT); digitalWrite(i,HIGH);
   }
 
