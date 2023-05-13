@@ -299,12 +299,14 @@ def ballLost():
     global lives, gameState
     lives=lives-1
     print ("BALL LOST! Lives left: " + str(lives))
-    if (lives>0):
+    if (lives>=0):
         playSound("t5")
-        pygame.time.delay(2000)
+        pygame.time.delay(1000)
         sendCommand(CMD_TRIGGER_BALL)
 
     else:
+        playSound("t5")
+        pygame.time.delay(1000)
         playSound("t3")
         updateLetters("*****")
         sendCommand(CMD_LCD_GOIDLE);
