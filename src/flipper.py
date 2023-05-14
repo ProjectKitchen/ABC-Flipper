@@ -24,6 +24,11 @@ else:
 raspiPortName="/dev/ttyACM0"
 otherPortName="COM17"
 
+scrollText = " "
+scrollText1= "     ABC-Flipper!!    Highscore:"
+scrollText2= "     Triff die Buchstaben und baue daraus Worte!      Bitte Zoomie einwerfen ...   "
+
+scrollSpeed= 35
 
 CMD_LCD_ROTATE='7'
 CMD_LCD_GOIDLE='8'
@@ -43,16 +48,20 @@ textcolor="yellow"
 boardcolor="gray"
 activeboardcolor="red"
 backgroundcolor="black"
+pointscolor="#FF2020"
 maxLetters=5
 maxTargets=5
 maxLives=3
 lives=0
 gameState=GAMESTATE_IDLE
 points=0
+highScore=200
+highScoreAnim=0
 winAnim=0
 looseAnim=0
 clockAnim=0
 coinAnim=0
+scrollPos=0
 
 pinballXPos=80
 pinballYPos=70
@@ -202,7 +211,7 @@ def abs_move(self, _object, new_x, new_y):
 def updatePoints(p):
     global points
     points=points+p
-    tkCanvas.itemconfigure(pointsID,text=str(points).zfill(8))   
+    tkCanvas.itemconfigure(pointsID,text=str(points).zfill(7))   
 
 def createScene():
     global letterIDs, boxID, pinballID, pointsID, clockID, coinID
@@ -215,7 +224,7 @@ def createScene():
     for i in range (maxLives):
         pinballIDs[i]=tkCanvas.create_image(pinballXPos+i*pinballWidth, pinballYPos, image=pinballImg, anchor="center")
 
-    pointsID=tkCanvas.create_text(int(screen_width/3*2), 40, text="000000000", anchor="nw", font=pointfont, fill="#FF2020")
+    pointsID=tkCanvas.create_text(int(screen_width/3*2), 40, text="0000000", anchor="nw", font=pointfont, fill=pointscolor)
     clockID =tkCanvas.create_arc(0,pinballYPos, clockSize,pinballYPos+clockSize, start=90, extent=0, fill="#000000")
     coinID =tkCanvas.create_image(pinballXPos, pinballYPos, image=coinImg, anchor="center")
 
@@ -226,10 +235,14 @@ def updateLetters(string):
     for i in range(len(string),maxLetters):
         tkCanvas.itemconfigure(letterIDs[i],text=' ')
     for i in range(maxLetters):
+        if (gameState==GAMESTATE_IDLE):
+            tkCanvas.itemconfigure(boardIDs[i],fill='lightgrey')
+            tkCanvas.itemconfigure(letterIDs[i],fill='blue')
+        else:
+            tkCanvas.itemconfigure(letterIDs[i],fill='yellow')
+            tkCanvas.itemconfigure(boardIDs[i],fill=boardcolor)
         if (i==modifyLetter) and (gameState==GAMESTATE_ANAGRAM):
             tkCanvas.itemconfigure(boardIDs[i],fill=activeboardcolor)
-        else:
-            tkCanvas.itemconfigure(boardIDs[i],fill=boardcolor)
         
     if gameState==GAMESTATE_ANAGRAM:
         tkCanvas.itemconfigure(boxID,state='normal') 
@@ -268,13 +281,28 @@ def renewTargets():
 
         
 def animCoin():
-    global coinAnim
+    global coinAnim, scrollPos, highScoreAnim
     coinAnim=coinAnim+1
     if coinAnim % 200 == 0:
         tkCanvas.itemconfigure(coinID,state='hidden')      
         coinAnim=0
     if coinAnim % 200 == 50:
         tkCanvas.itemconfigure(coinID,state='normal')      
+    if coinAnim % scrollSpeed == 0:
+        scrollPos=scrollPos+1
+        if (scrollPos>len(scrollText)-5):
+            scrollPos=0
+        scrollDisplay=scrollText[scrollPos:scrollPos+5]
+        updateLetters(scrollDisplay)
+    if highScoreAnim > 0:
+        if (highScoreAnim%50==0):
+            tkCanvas.itemconfigure(pointsID,fill="white")        
+        if (highScoreAnim%70==0):
+            tkCanvas.itemconfigure(pointsID,fill=pointscolor)        
+        highScoreAnim=highScoreAnim-1
+        if (highScoreAnim==0):
+            tkCanvas.itemconfigure(pointsID,fill=pointscolor)        
+
 
 def animLettersWon():
     global winAnim
@@ -289,14 +317,14 @@ def animLettersLost():
     global looseAnim
     if looseAnim % 25 == 0:
         for i in range (len(actword)):
-            tkCanvas.itemconfigure(letterIDs[i],fill="yellow")        
+            tkCanvas.itemconfigure(letterIDs[i],fill="white")        
     if looseAnim % 25 == 11:
         for i in range (len(actword)):
-            tkCanvas.itemconfigure(letterIDs[i],fill="red")        
+            tkCanvas.itemconfigure(letterIDs[i],fill="blue")        
 
 
 def ballLost():
-    global lives, gameState
+    global lives, gameState, highScore, highScoreAnim, scrollText, scrollPos
     lives=lives-1
     print ("BALL LOST! Lives left: " + str(lives))
     if (lives>=0):
@@ -307,11 +335,19 @@ def ballLost():
     else:
         playSound("t5")
         pygame.time.delay(1000)
-        playSound("t3")
-        updateLetters("*****")
+        if (points<=highScore):
+            playSound("t3")
+            updateLetters("*****")
+        else:
+            playSound("applause")
+            highScore=points
+            highScoreAnim=500
+            scrollText=scrollText1+str(highScore)+scrollText2
+
         sendCommand(CMD_LCD_GOIDLE);
         sendCommand(GAMESTATE_IDLE);
         gameState=GAMESTATE_IDLE
+        scrollPos=0
         tkCanvas.itemconfigure(clockID,state='hidden')      
         tkCanvas.itemconfigure(coinID,state='normal')
 
@@ -323,7 +359,8 @@ def ballLost():
 '''
 
 def processGameEvents():
-    global winAnim, looseAnim, clockAnim, lives, keyPressed, points, gameState, ballLostBypass
+    global winAnim, looseAnim, clockAnim, lives, keyPressed
+    global points, highScore, gameState, ballLostBypass
     
     userInput=""
     if (serialPortOpen==1) and (ser.inWaiting() > 0):
@@ -460,8 +497,8 @@ screen_height = root.winfo_screenheight()
 print ("Screen size = "+str (screen_width) + "/" + str (screen_height)) 
 
 letterFontSize=int(screen_height/5)
-#pointFontSize=int(screen_height/20)
-pointFontSize=int(screen_height/12)
+pointFontSize=int(screen_height/20)
+#pointFontSize=int(screen_height/12)
 
 lettersXPos=int(screen_width/4)
 lettersYPos=int(screen_height/3*1.7)
@@ -469,11 +506,12 @@ root.attributes("-fullscreen", screenstate)
     
 tkFont.families()    
 letterfont = tkFont.Font(family="Noto Mono", size = letterFontSize)
-pointfont = tkFont.Font(family="Noto Mono", size = pointFontSize)
-
+#letterfont = tkFont.Font(family="Seven Segment", size = letterFontSize)
+#letterfont = tkFont.Font(family="Lato", size = letterFontSize)
+pointfont = tkFont.Font(family="segment", size = pointFontSize)
 #pointfont = Font(file=getPath("../fonts/segment.ttf"), family="segment", size=pointFontSize)
 
-letterwidth = letterfont.measure("0")+20
+letterwidth = letterfont.measure("W")+20
 pinballImg=ImageTk.PhotoImage(file=getPath("../img/pinball1.png"))
 coinImg=ImageTk.PhotoImage(file=getPath("../img/coin.jpg"))
 
@@ -484,6 +522,8 @@ root.bind("<F11>", toggle_fullscreen)
 root.bind("<Escape>", end_fullscreen)
 root.bind("<KeyPress>", keydown)
 root.bind("<KeyRelease>", keyup)
+
+scrollText=scrollText1+str(highScore)+scrollText2
 
 text_file = open(getPath("worte.txt"), "r")
 lines = text_file.readlines()
