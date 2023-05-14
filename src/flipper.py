@@ -305,7 +305,6 @@ def animCoin():
 
 
 def animLettersWon():
-    global winAnim
     if winAnim % 10 == 0:
         for i in range (len(actword)):
             tkCanvas.itemconfigure(letterIDs[i],fill="white")        
@@ -314,7 +313,6 @@ def animLettersWon():
             tkCanvas.itemconfigure(letterIDs[i],fill="black")        
 
 def animLettersLost():
-    global looseAnim
     if looseAnim % 25 == 0:
         for i in range (len(actword)):
             tkCanvas.itemconfigure(letterIDs[i],fill="white")        
@@ -327,7 +325,7 @@ def ballLost():
     global lives, gameState, highScore, highScoreAnim, scrollText, scrollPos
     lives=lives-1
     print ("BALL LOST! Lives left: " + str(lives))
-    if (lives>=0):
+    if (lives>0):
         playSound("t5")
         pygame.time.delay(1000)
         sendCommand(CMD_TRIGGER_BALL)
@@ -455,7 +453,7 @@ def processGameEvents():
     if (gameState==GAMESTATE_LOST):
         animLettersLost()
         looseAnim=looseAnim-1
-        if looseAnim==0:
+        if looseAnim<=0:
             ballLost()
             for i in range (len(actword)):
                 tkCanvas.itemconfigure(letterIDs[i],fill=textcolor)        
@@ -466,7 +464,7 @@ def processGameEvents():
     if (gameState==GAMESTATE_WON):
         animLettersWon()
         winAnim=winAnim-1
-        if winAnim==0:
+        if winAnim<=0:
             for i in range (len(actword)):
                 tkCanvas.itemconfigure(letterIDs[i],fill=textcolor)        
             newGameRound()
