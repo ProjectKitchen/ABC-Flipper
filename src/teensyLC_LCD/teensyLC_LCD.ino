@@ -7,8 +7,13 @@
 #include <Adafruit_GFX.h>     // Core graphics library
 #include <Adafruit_ST7735.h>  // Hardware-specific library for ST7735
 #include <SPI.h>
-//#include <Fonts/FreeSansBold24pt7b.h>
 #include "FreeSansBold24pt7b.h"
+
+#define ECHO_SERIAL_INPUT 0  // 1 for serial debug output
+
+#define XPOS 35
+#define YPOS 100
+
 
 #define CMD_ROTATE '7'
 #define CMD_GOIDLE '8'
@@ -18,8 +23,6 @@
 #define TFT_RST -1  // Or set to -1 and connect to Arduino RESET pin
 #define TFT_DC 8
 
-#define XPOS 40
-#define YPOS 100
 
 #define MODE_IDLE   0
 #define MODE_LETTER 1
@@ -28,12 +31,12 @@
 // For 1.44" and 1.8" TFT with ST7735 use:
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
-char text[] = "A";
+char text[] = "?";
 uint8_t displayNum = 0;
 int mode = MODE_IDLE;
 uint32_t animTimestamp = 0;
-int animState=0;
-int actRotation=3;
+int animState = 0;
+int actRotation = 3;
 
 void setup(void) {
   Serial.begin(9600);
@@ -47,7 +50,7 @@ void setup(void) {
 
   delay(500);
   randomSeed(analogRead(0));
-  tft.setRotation(actRotation); 
+  tft.setRotation(actRotation);
   tft.setFont(&FreeSansBold24pt7b);
   tft.setTextSize(2);
   //tft.setTextSize(13);
@@ -64,49 +67,73 @@ void setup(void) {
       tft.println(text);
       delay(300);
     }
-    */
+  */
 
+}
+
+void processMode() {
+  switch (mode) {
+    case MODE_IDLE:
+      if (millis() > animTimestamp) {
+        animTimestamp = millis() + random(300, 5000);
+        animState++;
+        if (animState == 1) {
+          tft.setCursor(XPOS, YPOS);
+          tft.setTextColor(ST77XX_MAGENTA);
+          tft.println("?");
+        } else {
+          tft.fillScreen(ST77XX_BLACK);
+          animState = 0;
+        }
+      }
+      break;
+    case MODE_LETTER:
+      break;
+    case MODE_HIT:
+      if (millis() > animTimestamp) {
+        if (ECHO_SERIAL_INPUT) Serial.print("*");
+        animTimestamp = millis() + 50;
+        animState++;
+        if (animState < 15) {
+          if (animState % 2) tft.invertDisplay(true);
+          else tft.invertDisplay(false);
+        }
+        else {
+          tft.invertDisplay(false);
+          tft.fillScreen(ST77XX_BLACK);
+          tft.setCursor(XPOS, YPOS);
+          tft.setTextColor(ST77XX_GREEN);
+          tft.println("o");
+          mode = MODE_LETTER;
+        }
+      }
+      break;
+  }
+  return;
 }
 
 
 void loop() {
-  int input = 0;
+  int input = -1;
   if (Serial.available()) input = Serial.read();
   else if (Serial1.available()) input = Serial1.read();
-  else {
-    switch (mode) {
-      case MODE_IDLE:
-        if (millis() > animTimestamp) {
-          animTimestamp = millis() + random(300,5000);
-          animState++;
-          if (animState == 1) {
-            tft.setCursor(XPOS, YPOS);
-            tft.setTextColor(ST77XX_MAGENTA);
-            tft.println("?");
-          } else {
-            tft.fillScreen(ST77XX_BLACK);
-            animState = 0;
-          }
-        }
-        break;
-      case MODE_LETTER:
-      break;
-      case MODE_HIT:
-      break;
-    }
+  if (input == -1) {
+    processMode();
     return;
   }
 
+  if (ECHO_SERIAL_INPUT) Serial.println((int) input);
+
   if (input == CMD_ROTATE) {
-    actRotation=(actRotation+1)%4;
-    tft.setRotation(actRotation); 
+    actRotation = (actRotation + 1) % 4;
+    tft.setRotation(actRotation);
     tft.fillScreen(ST77XX_BLACK);
-    Serial1.write(CMD_ROTATE);    
+    Serial1.write(CMD_ROTATE);
     return;
   }
 
   if (input == CMD_GOIDLE) {
-    mode=MODE_IDLE;
+    mode = MODE_IDLE;
     tft.fillScreen(ST77XX_BLACK);
     Serial1.write(CMD_GOIDLE);
     return;
@@ -115,14 +142,21 @@ void loop() {
   if ((input > '0') && (input < '6')) {
     displayNum = input;
   } else {
-    if (displayNum == '1') {
+    if ((displayNum == '1') && (text[0] != input)) {
       text[0] = input;
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setCursor(30, 100);
-      tft.setTextColor(ST77XX_YELLOW);
-      tft.println(text);
-      displayNum = 0;
-      mode=MODE_LETTER;
+      if (input != ' ') {
+        tft.fillScreen(ST77XX_BLACK);
+        tft.setCursor(XPOS, YPOS);
+        tft.setTextColor(ST77XX_YELLOW);
+        tft.println(text);
+        displayNum = 0;
+        mode = MODE_LETTER;
+        if (ECHO_SERIAL_INPUT) Serial.println("mode: Letter");
+      } else {
+        mode = MODE_HIT;
+        animState = 0;
+        if (ECHO_SERIAL_INPUT) Serial.println("mode: Hit");
+      }
     } else {
       Serial1.write(displayNum - 1);
       Serial1.write((uint8_t)input);
