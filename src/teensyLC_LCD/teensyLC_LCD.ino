@@ -101,9 +101,9 @@ void processMode() {
         else {
           tft.invertDisplay(false);
           tft.fillScreen(ST77XX_BLACK);
-          tft.setCursor(XPOS, YPOS);
-          tft.setTextColor(ST77XX_GREEN);
-          tft.println("o");
+          //tft.setCursor(XPOS, YPOS);
+          //tft.setTextColor(ST77XX_GREEN);
+          //tft.println("o");
           mode = MODE_LETTER;
         }
       }
