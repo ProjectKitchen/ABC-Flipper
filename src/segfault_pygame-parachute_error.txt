@@ -1,0 +1,12 @@
+button3 - change letter: 4
+Fatal Python error: (pygame parachute) Segmentation Fault
+
+Current thread 0xb6f99ad0 (most recent call first):
+  File "/usr/lib/python3.7/tkinter/__init__.py", line 1363 in _register
+  File "/usr/lib/python3.7/tkinter/__init__.py", line 756 in after
+  File "flipper.py", line 477 in processGameEvents
+  File "/usr/lib/python3.7/tkinter/__init__.py", line 749 in callit
+  File "/usr/lib/python3.7/tkinter/__init__.py", line 1705 in __call__
+  File "/usr/lib/python3.7/tkinter/__init__.py", line 1283 in mainloop
+  File "flipper.py", line 558 in <module>
+Aborted
