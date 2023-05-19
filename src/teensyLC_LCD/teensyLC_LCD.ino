@@ -142,17 +142,20 @@ void loop() {
   if ((input > '0') && (input < '6')) {
     displayNum = input;
   } else {
-    if ((displayNum == '1') && (text[0] != input)) {
-      text[0] = input;
-      if (input != ' ') {
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setCursor(XPOS, YPOS);
-        tft.setTextColor(ST77XX_YELLOW);
-        tft.println(text);
-        displayNum = 0;
-        mode = MODE_LETTER;
-        if (ECHO_SERIAL_INPUT) Serial.println("mode: Letter");
-      } else {
+    if (displayNum == '1') {
+      if (text[0] != input) {
+        text[0] = input;
+        if (input != ' ') {
+          tft.fillScreen(ST77XX_BLACK);
+          tft.setCursor(XPOS, YPOS);
+          tft.setTextColor(ST77XX_YELLOW);
+          tft.println(text);
+          displayNum = 0;
+          mode = MODE_LETTER;
+          if (ECHO_SERIAL_INPUT) Serial.println("mode: Letter");
+        }
+      }
+      if (input == ' ') {
         mode = MODE_HIT;
         animState = 0;
         if (ECHO_SERIAL_INPUT) Serial.println("mode: Hit");
