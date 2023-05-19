@@ -26,9 +26,13 @@ otherPortName="COM17"
 
 scrollText = " "
 scrollText1= "     ABC-Flipper!!    Highscore:"
-scrollText2= "     Triff die Buchstaben und baue daraus Worte!      Bitte Zoomie einwerfen ...   "
+scrollText2= "     Triff die Buchstaben und baue Worte!      Bitte Zoomi einwerfen ...   "
 
 scrollSpeed= 35
+BALLOST_BYPASS_TIME= 300
+MIN_FLOPSOUND= 1
+MAX_FLOPSOUND= 8
+
 
 CMD_LCD_ROTATE='7'
 CMD_LCD_GOIDLE='8'
@@ -41,6 +45,8 @@ GAMESTATE_LOST = 'e'
 
 CMD_TRIGGER_BALL='f'
 CMD_TRIGGER_BELL='g'
+CMD_BUMPER_LIGHT = 'i'
+CMD_RANDOM_LIGHT = 'h'
 
 
 screenstate = True
@@ -49,6 +55,10 @@ boardcolor="gray"
 activeboardcolor="red"
 backgroundcolor="black"
 pointscolor="#FF2020"
+scrollBackgroundcolor="#600040"
+scrollLettercolor="#c0c0ff"
+scrollBrightness=50
+
 maxLetters=5
 maxTargets=5
 maxLives=3
@@ -176,7 +186,7 @@ def addLetter(pos):
         actTargets[pos]=' '
         printTargetsLCD()
     else:
-        playSound('t1')
+        playSound('x'+str(random.randint(MIN_FLOPSOUND,MAX_FLOPSOUND)))
 
 def keydown(e):
     global keyPressed
@@ -236,8 +246,8 @@ def updateLetters(string):
         tkCanvas.itemconfigure(letterIDs[i],text=' ')
     for i in range(maxLetters):
         if (gameState==GAMESTATE_IDLE):
-            tkCanvas.itemconfigure(boardIDs[i],fill='lightgrey')
-            tkCanvas.itemconfigure(letterIDs[i],fill='blue')
+            tkCanvas.itemconfigure(boardIDs[i],fill=scrollBackgroundcolor)
+            # tkCanvas.itemconfigure(letterIDs[i],fill=scrollLettercolor)
         else:
             tkCanvas.itemconfigure(letterIDs[i],fill='yellow')
             tkCanvas.itemconfigure(boardIDs[i],fill=boardcolor)
@@ -259,10 +269,11 @@ def updatePinballs():
             tkCanvas.itemconfigure(pinballIDs[i],state='hidden')
 
 def newGameRound():
-    global actword, goalWord, gameState
+    global actword, goalWord, gameState, ballLostBypass
     goalWord=lines[randrange(len(lines))]
     print ("GOAL="+goalWord)
     actword=""
+    ballLostBypass=BALLOST_BYPASS_TIME
     renewTargets()
     tkCanvas.itemconfigure(clockID,state='hidden')      
     tkCanvas.itemconfigure(coinID,state='hidden')
@@ -279,15 +290,27 @@ def renewTargets():
         actTargets[i]=goalWord[samp[i]]
     printTargetsLCD()
 
-        
+def _from_rgb(rgb):
+    """translates an rgb tuple of int to a tkinter friendly color code
+    """
+    return "#%02x%02x%02x" % rgb   
+
+
 def animCoin():
-    global coinAnim, scrollPos, highScoreAnim
+    global coinAnim, scrollPos, scrollBrightness, highScoreAnim
     coinAnim=coinAnim+1
     if coinAnim % 200 == 0:
         tkCanvas.itemconfigure(coinID,state='hidden')      
         coinAnim=0
     if coinAnim % 200 == 50:
-        tkCanvas.itemconfigure(coinID,state='normal')      
+        tkCanvas.itemconfigure(coinID,state='normal')
+    if coinAnim % 50 == 0:
+        scrollBrightness=scrollBrightness+20
+        if scrollBrightness>200:
+            scrollBrightness=0
+        for i in range(maxLetters):
+            b=(scrollBrightness+i*10)%200            
+            tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((80+abs(100-b), 80+abs(100-b), 230))) 
     if coinAnim % scrollSpeed == 0:
         scrollPos=scrollPos+1
         if (scrollPos>len(scrollText)-5):
@@ -322,7 +345,13 @@ def animLettersLost():
 
 
 def ballLost():
-    global lives, gameState, highScore, highScoreAnim, scrollText, scrollPos
+    global lives, gameState, ballLostBypass
+    global highScore, highScoreAnim, scrollText, scrollPos
+
+    if ballLostBypass>0:
+        return
+        
+    ballLostBypass=BALLOST_BYPASS_TIME
     lives=lives-1
     print ("BALL LOST! Lives left: " + str(lives))
     if (lives>0):
@@ -405,26 +434,31 @@ def processGameEvents():
                     updatePoints(1000);
                     playSound("w4")
                     gameState=GAMESTATE_WON
+                    sendCommand(GAMESTATE_WON);
                     winAnim=100      # start winning animation, see processGameEvents()
 
 
             if (gameState==GAMESTATE_FLIPPER):
 
-                if (inputNumber==1) and (ballLostBypass==0):
-                    ballLostBypass=200
-                    ballLost()
+                if inputNumber==1:
+                    if (ballLostBypass>0):
+                        sendCommand(CMD_TRIGGER_BALL)  # retrigger ball release!
+                    else:
+                        ballLost()
 
                 if inputNumber>=5 and inputNumber<5+maxTargets:
                     addLetter(inputNumber-5)
-                    updatePoints(10);
+                    updatePoints(random.randrange(10,20))
                     if (len(actword) == maxLetters):
                         gameState=GAMESTATE_ANAGRAM
-                        sendCommand(GAMESTATE_ANAGRAM);
+                        sendCommand(GAMESTATE_ANAGRAM)
                         playSound("gong")
                         updateLetters(actword)
                         tkCanvas.itemconfigure(clockID,state='normal')      
                         tkCanvas.abs_move(clockID,pinballXPos+(lives-1)*pinballWidth-5, int(pinballYPos-clockSize/2)-5)
                         clockAnim=3600
+                    else:
+                        sendCommand(CMD_RANDOM_LIGHT)
                         
                     
         except ValueError as e:
@@ -499,7 +533,7 @@ pointFontSize=int(screen_height/20)
 #pointFontSize=int(screen_height/12)
 
 lettersXPos=int(screen_width/4)
-lettersYPos=int(screen_height/3*1.7)
+lettersYPos=int(screen_height/3*2.0)
 root.attributes("-fullscreen", screenstate)
     
 tkFont.families()    

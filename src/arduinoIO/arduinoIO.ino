@@ -1,48 +1,40 @@
 
 
-#define TEENSY2    // for Teensy2.0++ controller!  comment/remove for Teensy 3.2!
+//  arduinoIO.ino
+//  interface to flipper.py
+//  hardware: Teensy2.0++
+//  
+//  buttons/sensors connected to in4-in17
+//  relais connected to out18-out25 (lights) and out38-out45(magnets)
 
-
-#ifdef TEENSY2
-#define FIRST_BUTTON 4
 #define NUM_BUTTONS 14
+#define FIRST_BUTTON 4
 
-#define FIRST_RELAIS 38
 #define NUM_RELAIS   8
+#define FIRST_RELAIS 38
 
+#define BALL_RELAIS 38
+#define THROWER2_RELAIS 39
+#define THROWER1_RELAIS 40
+#define BELL_RELAIS 41
+
+
+#define NUM_LIGHTS 8
 #define FIRST_LIGHT 18
-#define NUM_LIGHTS 4
+
+#define NUM_TOPLIGHTS 4
+#define FIRST_TOPLIGHT 18
+
+#define NUM_RANDOMLIGHTS 4
+#define FIRST_RANDOMLIGHT 22
+
+#define BUMPERLIGHT_RELAIS 21
 
 #define THROWER1_BUTTON 6
 #define THROWER2_BUTTON 8
 
 
-#define BELL_RELAIS 41
-#define BALL_RELAIS 38
-#define THROWER1_RELAIS 40
-#define THROWER2_RELAIS 39
-#else
-#define FIRST_BUTTON 14
-#define NUM_BUTTONS 10
-
-#define FIRST_RELAIS 2
-#define NUM_RELAIS   8
-
-#define FIRST_LIGHT 2
-#define NUM_LIGHTS 4
-
-#define THROWER1_BUTTON 16
-#define THROWER2_BUTTON 18
-
-
-#define BELL_RELAIS 8
-#define BALL_RELAIS 9
-#define THROWER1_RELAIS 7
-#define THROWER2_RELAIS 6
-#endif
-
 #define BELL_ACTIVE_TIME 20
-
 
 #define BUTTON_DEBOUNCE_CYCLES  4
 #define BUTTON_BYPASS_TIME 100
@@ -50,7 +42,7 @@
 int blinkIdleTime = 2000;
 int blinkActiveTime = 500;
 int blinkWinTime = 200;
-int bellOnTime = 0, ballOnTime = 0;
+int bellOnTime = 0, ballOnTime = 0, bumperLightOnTime=0;
 
 uint8_t buttonState[NUM_BUTTONS] = {0};
 uint8_t buttonDebounce[NUM_BUTTONS] = {0};
@@ -64,6 +56,9 @@ uint32_t buttonTimestamp[NUM_BUTTONS] = {0};
 
 #define CMD_TRIGGER_BALL  'f'
 #define CMD_TRIGGER_BELL  'g'
+#define CMD_BUMPER_LIGHT  'i'
+#define CMD_RANDOM_LIGHT  'h'
+
 
 int gameState = GAMESTATE_IDLE;
 int blinkCount = 0;
@@ -90,35 +85,54 @@ void setup() {
   Serial.print('s');
 }
 
+
+void setRandomLights(uint8_t mode) {
+  uint8_t pattern=random(1<<NUM_RANDOMLIGHTS);
+  if (!mode) pattern=0;   // clear all lights
+  
+  for (uint8_t i =0;i<NUM_RANDOMLIGHTS;i++)
+    if (pattern&(1<<i)) digitalWrite(FIRST_RANDOMLIGHT+i,LOW); 
+    else digitalWrite(FIRST_RANDOMLIGHT+i,HIGH);
+}
+
+void setTopLights(uint8_t mode) {
+  
+  for (uint8_t i =0;i<NUM_TOPLIGHTS;i++)
+    if (mode) digitalWrite(FIRST_TOPLIGHT+i,LOW); 
+    else digitalWrite(FIRST_TOPLIGHT+i,HIGH);
+
+}
+
 void processBlinks() {
   switch (gameState) {
 
     case GAMESTATE_IDLE:
       if (++blinkCount > blinkIdleTime) {
         blinkCount = 0;
-        digitalWrite(FIRST_LIGHT + blinkPos, HIGH);
-        if (++blinkPos >= NUM_LIGHTS) blinkPos = 0;
-        digitalWrite(FIRST_LIGHT + blinkPos, LOW);
+        digitalWrite(FIRST_TOPLIGHT + blinkPos, HIGH);
+        if (++blinkPos >= NUM_TOPLIGHTS) blinkPos = 0;
+        digitalWrite(FIRST_TOPLIGHT + blinkPos, LOW);
+        if (random(20)>15) setRandomLights(1);
       }
       break;
     case GAMESTATE_FLIPPER:
-      // TBD: light effects during game?
+      // currently no periodic light effects during gameplay
       break;
 
     case GAMESTATE_ANAGRAM:
       if (++blinkCount > blinkActiveTime) {
         blinkCount = 0;
-        digitalWrite(FIRST_LIGHT + blinkPos, HIGH);
-        if (++blinkPos >= NUM_LIGHTS) blinkPos = 0;
-        digitalWrite(FIRST_LIGHT + blinkPos, LOW);
+        digitalWrite(FIRST_TOPLIGHT + blinkPos, HIGH);
+        if (++blinkPos >= NUM_TOPLIGHTS) blinkPos = 0;
+        digitalWrite(FIRST_TOPLIGHT + blinkPos, LOW);
       }
       break;
 
     case GAMESTATE_WON:
       if (++blinkCount > blinkWinTime) {
         blinkCount = 0;
-        for (int i = 0; i < NUM_LIGHTS; i++)
-          digitalWrite(FIRST_LIGHT + i, HIGH);
+        for (int i = 0; i < NUM_TOPLIGHTS; i++)
+          digitalWrite(FIRST_TOPLIGHT + i, HIGH);
         if (++blinkPos >= 5) {
           blinkPos = 0;
           blinkCount = 0;
@@ -127,8 +141,8 @@ void processBlinks() {
 
       }
       if (blinkCount == blinkWinTime / 2) {
-        for (int i = 0; i < NUM_LIGHTS; i++)
-          digitalWrite(FIRST_LIGHT + i, LOW);
+        for (int i = 0; i < NUM_TOPLIGHTS; i++)
+          digitalWrite(FIRST_TOPLIGHT + i, LOW);
       }
       break;
     case GAMESTATE_LOST:
@@ -141,17 +155,7 @@ void loop() {
 
   int tmp;
   for (int i = 0; i < NUM_BUTTONS; i++) {
-    /*
-      if ((tmp=digitalRead(FIRST_BUTTON+i)) != buttonState[i]) {
-      buttonState[i]=tmp;
-      if (tmp==LOW) {
-        if (millis()-buttonDebounce[i] > DEBOUNCE_TIME) {
-          buttonDebounce[i]=millis();
-          Serial.print((char) ('0'+i));
-        }
-      }
-      }
-    */
+
     tmp = digitalRead(FIRST_BUTTON + i);
     if ((tmp == LOW) && (buttonDebounce[i] < BUTTON_DEBOUNCE_CYCLES)) {
       buttonDebounce[i]++;
@@ -180,6 +184,8 @@ void loop() {
     if ((c >= 'a') && (c <= 'e')) {
       gameState = c;
       blinkPos = 0; blinkCount = 0;
+      setRandomLights(0);
+      setTopLights(0);
     }
     else if (c == CMD_TRIGGER_BELL) {
       digitalWrite(BELL_RELAIS, LOW);
@@ -188,6 +194,13 @@ void loop() {
     else if (c == CMD_TRIGGER_BALL) {
       digitalWrite(BALL_RELAIS, LOW);
       ballOnTime = 100;
+    }
+    else if (c == CMD_BUMPER_LIGHT) {
+      bumperLightOnTime = 200;      
+      digitalWrite(BUMPERLIGHT_RELAIS, LOW);
+    }
+    else if (c == CMD_RANDOM_LIGHT) {
+      setRandomLights(1);      
     }
     else Serial1.write((byte)c);
   }
@@ -200,6 +213,11 @@ void loop() {
   if (ballOnTime) {
     ballOnTime--;
     if (!ballOnTime) digitalWrite(BALL_RELAIS, HIGH);
+  }
+
+  if (bumperLightOnTime) {
+    bumperLightOnTime--;
+    if (!bumperLightOnTime) digitalWrite(BUMPERLIGHT_RELAIS, HIGH);
   }
 
   if (gameState == GAMESTATE_FLIPPER) {
