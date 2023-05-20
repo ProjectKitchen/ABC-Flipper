@@ -387,7 +387,7 @@ def ballLost():
 
 def processGameEvents():
     global winAnim, looseAnim, clockAnim, lives, keyPressed
-    global points, highScore, gameState, ballLostBypass
+    global points, highScore, gameState, ballLostBypass,actword
     
     userInput=""
     if (serialPortOpen==1) and (ser.inWaiting() > 0):
@@ -462,11 +462,29 @@ def processGameEvents():
                         
                     
         except ValueError as e:
-            print ("string detected")
             inputString=str(userInput)
             if (inputString=='s'):
                 print ("start signal received")
                 updatePoints(0)
+            if (gameState==GAMESTATE_FLIPPER):
+                if (inputString==':'):
+                    print ("joker hit!")
+                    updatePoints(200)
+                    playSound('gong')
+                    for i in range (maxLetters):
+                        if (actTargets[i] != ' '):
+                            actword=actword+actTargets[i]
+                    printTargetsLCD()        
+                    gameState=GAMESTATE_ANAGRAM
+                    sendCommand(GAMESTATE_ANAGRAM)
+                    updateLetters(actword)
+                    tkCanvas.itemconfigure(clockID,state='normal')      
+                    tkCanvas.abs_move(clockID,pinballXPos+(lives-1)*pinballWidth-5, int(pinballYPos-clockSize/2)-5)
+                    clockAnim=3600
+                    
+                if (inputString==';') or (inputString=='<') or (inputString=='='):
+                    updatePoints(random.randrange(10,20))
+                    playSound('x'+str(random.randint(MIN_FLOPSOUND,MAX_FLOPSOUND)))
 
 
     if clockAnim>0:

@@ -18,7 +18,6 @@
 #define THROWER1_RELAIS 40
 #define BELL_RELAIS 41
 
-
 #define NUM_LIGHTS 8
 #define FIRST_LIGHT 18
 
@@ -32,10 +31,13 @@
 
 #define THROWER1_BUTTON 6
 #define THROWER2_BUTTON 8
+#define JOKER_BUTTON  14
+#define BUMPER_BUTTON 15
 
 
-#define BELL_ACTIVE_TIME 20
-
+#define BELL_DURATION 100
+#define BALL_DURATION 100
+#define BUMPERLIGHT_DURATION 200
 #define BUTTON_DEBOUNCE_CYCLES  4
 #define BUTTON_BYPASS_TIME 100
 
@@ -164,7 +166,11 @@ void loop() {
         // handle button press
         if ((millis() - buttonTimestamp[i]) > BUTTON_BYPASS_TIME) {
           buttonTimestamp[i] = millis();
-          Serial.print((char) ('0' + i)); // take care for > 9 ...
+          Serial.print((char) ('0' + i)); 
+          if (FIRST_BUTTON+i == BUMPER_BUTTON) {
+            bumperLightOnTime=BUMPERLIGHT_DURATION;
+            digitalWrite(BUMPERLIGHT_RELAIS, LOW);
+          }
         }
       }
     }
@@ -189,14 +195,14 @@ void loop() {
     }
     else if (c == CMD_TRIGGER_BELL) {
       digitalWrite(BELL_RELAIS, LOW);
-      bellOnTime = 100;
+      bellOnTime = BELL_DURATION;
     }
     else if (c == CMD_TRIGGER_BALL) {
       digitalWrite(BALL_RELAIS, LOW);
-      ballOnTime = 100;
+      ballOnTime = BALL_DURATION;
     }
     else if (c == CMD_BUMPER_LIGHT) {
-      bumperLightOnTime = 200;      
+      bumperLightOnTime = BUMPERLIGHT_DURATION;      
       digitalWrite(BUMPERLIGHT_RELAIS, LOW);
     }
     else if (c == CMD_RANDOM_LIGHT) {
