@@ -24,9 +24,7 @@ else:
 raspiPortName="/dev/ttyACM0"
 otherPortName="COM17"
 
-scrollText = " "
-scrollText1= "     ABC-Flipper!!    Highscore:"
-scrollText2= "     Triff die Buchstaben und baue Worte!      Bitte Zoomi einwerfen ...   "
+scrollText = "         ABC-Flipper!!         Triff die Buchstaben und baue Worte!      Bitte Zoomi einwerfen ...      "
 
 scrollSpeed= 35
 BALLOST_BYPASS_TIME= 300
@@ -70,7 +68,7 @@ highScoreAnim=0
 winAnim=0
 looseAnim=0
 clockAnim=0
-coinAnim=0
+startAnim=0
 scrollPos=0
 
 pinballXPos=80
@@ -295,28 +293,62 @@ def _from_rgb(rgb):
     """
     return "#%02x%02x%02x" % rgb   
 
+startAnimPhase=1
 
-def animCoin():
-    global coinAnim, scrollPos, scrollBrightness, highScoreAnim
-    coinAnim=coinAnim+1
-    if coinAnim % 200 == 0:
+def animStart():
+    global startAnim, scrollPos, scrollBrightness, highScoreAnim, startAnimPhase
+    startAnim=startAnim+1
+    if startAnim % 200 == 0:
         tkCanvas.itemconfigure(coinID,state='hidden')      
-        coinAnim=0
-    if coinAnim % 200 == 50:
+        startAnim=0
+    if startAnim % 200 == 50:
         tkCanvas.itemconfigure(coinID,state='normal')
-    if coinAnim % 50 == 0:
-        scrollBrightness=scrollBrightness+20
-        if scrollBrightness>200:
-            scrollBrightness=0
-        for i in range(maxLetters):
-            b=(scrollBrightness+i*10)%200            
-            tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((80+abs(100-b), 80+abs(100-b), 230))) 
-    if coinAnim % scrollSpeed == 0:
+        
+    if startAnim % scrollSpeed == 0:
         scrollPos=scrollPos+1
-        if (scrollPos>len(scrollText)-5):
-            scrollPos=0
-        scrollDisplay=scrollText[scrollPos:scrollPos+5]
+        if (startAnimPhase==0):
+            scrollDisplay=scrollText[scrollPos:scrollPos+5]
+            scrollBrightness=scrollBrightness+20
+            if scrollBrightness>200:
+                scrollBrightness=0
+            for i in range(maxLetters):
+                b=(scrollBrightness+i*10)%200
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((80+abs(100-b), 80+abs(100-b), 230))) 
+
+            if (scrollPos>len(scrollText)-5):
+                scrollPos=0
+                startAnimPhase=1
+ 
+        if (startAnimPhase==1):
+            scrollDisplay="HIGH "
+            for i in range(maxLetters):
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((250, 250, 250))) 
+            if (scrollPos==4):
+                scrollPos=0
+                startAnimPhase=2
+ 
+        if (startAnimPhase==2):
+            scrollDisplay="SCORE"
+            for i in range(maxLetters):
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((250, 250, 250)))
+            if (scrollPos==4):
+                scrollPos=0
+                startAnimPhase=3
+
+        if (startAnimPhase==3):
+            scrollDisplay=(str(highScore).zfill(5))[:5]
+            for i in range(maxLetters):
+                if scrollPos%3 == 0:
+                    tkCanvas.itemconfigure(letterIDs[i],fill="white")
+                else:
+                    tkCanvas.itemconfigure(letterIDs[i],fill="black")
+            if (scrollPos==12):
+                scrollPos=0
+                startAnimPhase=0
         updateLetters(scrollDisplay)
+            
+        
+
     if highScoreAnim > 0:
         if (highScoreAnim%50==0):
             tkCanvas.itemconfigure(pointsID,fill="white")        
@@ -346,7 +378,7 @@ def animLettersLost():
 
 def ballLost():
     global lives, gameState, ballLostBypass
-    global highScore, highScoreAnim, scrollText, scrollPos
+    global highScore, highScoreAnim, scrollText, scrollPos, startAnimPhase
 
     if ballLostBypass>0:
         return
@@ -364,12 +396,13 @@ def ballLost():
         pygame.time.delay(1000)
         if (points<=highScore):
             playSound("t3")
-            updateLetters("*****")
+            updateLetters(" ")
+            startAnimPhase=0
         else:
             playSound("applause")
             highScore=points
             highScoreAnim=500
-            scrollText=scrollText1+str(highScore)+scrollText2
+            startAnimPhase=1
 
         sendCommand(CMD_LCD_GOIDLE);
         sendCommand(GAMESTATE_IDLE);
@@ -470,7 +503,7 @@ def processGameEvents():
                 if (inputString==':'):
                     print ("joker hit!")
                     updatePoints(200)
-                    playSound('gong')
+                    playSound('joker')
                     for i in range (maxLetters):
                         if (actTargets[i] != ' '):
                             actword=actword+actTargets[i]
@@ -500,7 +533,7 @@ def processGameEvents():
         ballLostBypass=ballLostBypass-1
 
     if (gameState==GAMESTATE_IDLE):
-        animCoin()
+        animStart()
 
     if (gameState==GAMESTATE_LOST):
         animLettersLost()
@@ -573,8 +606,6 @@ root.bind("<Escape>", end_fullscreen)
 root.bind("<KeyPress>", keydown)
 root.bind("<KeyRelease>", keyup)
 
-scrollText=scrollText1+str(highScore)+scrollText2
-
 text_file = open(getPath("worte.txt"), "r")
 lines = text_file.readlines()
 text_file.close()
@@ -601,7 +632,7 @@ except serial.SerialException as e:
 
 goalWord=lines[randrange(len(lines))]
 createScene()
-updateLetters("*****")
+updateLetters("     ")
 updatePinballs()
 
 processGameEvents()
