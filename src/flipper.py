@@ -40,11 +40,12 @@ GAMESTATE_FLIPPER ='b'
 GAMESTATE_ANAGRAM = 'c'
 GAMESTATE_WON = 'd'
 GAMESTATE_LOST = 'e'
+GAMESTATE_HIGHSCORE = 'x'   # TBD: harmonize arduino gamestate commands
 
 CMD_TRIGGER_BALL='f'
 CMD_TRIGGER_BELL='g'
-CMD_BUMPER_LIGHT = 'i'
 CMD_RANDOM_LIGHT = 'h'
+CMD_BUMPER_LIGHT = 'i'
 
 
 screenstate = True
@@ -64,11 +65,12 @@ lives=0
 gameState=GAMESTATE_IDLE
 points=0
 highScore=200
+highName="DAVID"
 highScoreAnim=0
 winAnim=0
 looseAnim=0
 clockAnim=0
-startAnim=0
+idleAnimCount=0
 scrollPos=0
 
 pinballXPos=80
@@ -79,7 +81,7 @@ clockSize=105
 letterIDs = array.array('i',(0 for i in range(0,maxLetters))) 
 boardIDs = array.array('i',(0 for i in range(0,maxLetters))) 
 pinballIDs = array.array('i',(0 for i in range(0,maxLives))) 
-boxID = 0
+nameID = 0
 pointsID=0
 clockID = 0
 coinID=0
@@ -174,6 +176,32 @@ def switchLetterRight():
     print ("button4 - switch letters right, actword = " + actword)
     updateLetters(actword)
 
+  
+def upLetter():
+    global modifyLetter, actword
+    s=list(actword)
+    if ord(s[modifyLetter]) < ord('Z'):
+        if s[modifyLetter]==' ':
+            s[modifyLetter]='A'
+        else:
+            s[modifyLetter]=chr(ord(s[modifyLetter])+1)
+    else:
+        s[modifyLetter]=' '
+    actword="".join(s)
+    updateLetters(actword)
+
+def downLetter():
+    global modifyLetter, actword
+    s=list(actword)
+    if ord(s[modifyLetter]) > ord('A'):
+        s[modifyLetter]=chr(ord(s[modifyLetter])-1)
+    else:
+        if s[modifyLetter]==' ':  
+            s[modifyLetter]='Z'
+        else:
+            s[modifyLetter]=' '
+    actword="".join(s)
+    updateLetters(actword)
 
 def addLetter(pos):
     global actword
@@ -222,19 +250,20 @@ def updatePoints(p):
     tkCanvas.itemconfigure(pointsID,text=str(points).zfill(7))   
 
 def createScene():
-    global letterIDs, boxID, pinballID, pointsID, clockID, coinID
+    global letterIDs, nameID, pinballID, pointsID, clockID, coinID
     for i in range (maxLetters):
         letterIDs[i] = tkCanvas.create_text(lettersXPos+10+letterwidth*i, lettersYPos, text=" ", anchor="nw", font=letterfont, fill=textcolor)
         x0, y0, x1, y1 = tkCanvas.bbox(letterIDs[i])
         boardIDs[i]=tkCanvas.create_rectangle(lettersXPos+letterwidth*i, lettersYPos, lettersXPos+letterwidth*(i+1), y1, fill=boardcolor, outline="white")
         tkCanvas.lift(letterIDs[i],boardIDs[i])
-    boxID = tkCanvas.create_rectangle(lettersXPos, y1+10, lettersXPos+letterwidth, y1+20, fill="white", outline="white")
+    #boxID = tkCanvas.create_rectangle(lettersXPos, y1+10, lettersXPos+letterwidth, y1+20, fill="white", outline="white")
     for i in range (maxLives):
         pinballIDs[i]=tkCanvas.create_image(pinballXPos+i*pinballWidth, pinballYPos, image=pinballImg, anchor="center")
 
     pointsID=tkCanvas.create_text(int(screen_width/3*2), 40, text="0000000", anchor="nw", font=pointfont, fill=pointscolor)
     clockID =tkCanvas.create_arc(0,pinballYPos, clockSize,pinballYPos+clockSize, start=90, extent=0, fill="#000000")
     coinID =tkCanvas.create_image(pinballXPos, pinballYPos, image=coinImg, anchor="center")
+    nameID =tkCanvas.create_image(230, 90, image=nameImg, anchor="center")
 
 def updateLetters(string):
     global winAnim, clockAnim
@@ -249,14 +278,12 @@ def updateLetters(string):
         else:
             tkCanvas.itemconfigure(letterIDs[i],fill='yellow')
             tkCanvas.itemconfigure(boardIDs[i],fill=boardcolor)
-        if (i==modifyLetter) and (gameState==GAMESTATE_ANAGRAM):
-            tkCanvas.itemconfigure(boardIDs[i],fill=activeboardcolor)
-        
-    if gameState==GAMESTATE_ANAGRAM:
-        tkCanvas.itemconfigure(boxID,state='normal') 
-        tkCanvas.abs_move(boxID,lettersXPos+modifyLetter*letterwidth, lettersYPos+letterFontSize*1.7)
-    else:
-        tkCanvas.itemconfigure(boxID,state='hidden') 
+            
+        if (i==modifyLetter):
+            if (gameState==GAMESTATE_ANAGRAM):
+                tkCanvas.itemconfigure(boardIDs[i],fill=activeboardcolor)        
+            if (gameState==GAMESTATE_HIGHSCORE):
+                tkCanvas.itemconfigure(boardIDs[i],fill="green")
     
 
 def updatePinballs():
@@ -293,20 +320,20 @@ def _from_rgb(rgb):
     """
     return "#%02x%02x%02x" % rgb   
 
-startAnimPhase=1
+idleAnimPhase=1
 
-def animStart():
-    global startAnim, scrollPos, scrollBrightness, highScoreAnim, startAnimPhase
-    startAnim=startAnim+1
-    if startAnim % 200 == 0:
+def idleAnim():
+    global idleAnimCount, scrollPos, scrollBrightness, highScoreAnim, idleAnimPhase
+    idleAnimCount=idleAnimCount+1
+    if idleAnimCount % 200 == 0:
         tkCanvas.itemconfigure(coinID,state='hidden')      
-        startAnim=0
-    if startAnim % 200 == 50:
+        idleAnimCount=0
+    if idleAnimCount % 200 == 50:
         tkCanvas.itemconfigure(coinID,state='normal')
         
-    if startAnim % scrollSpeed == 0:
+    if idleAnimCount % scrollSpeed == 0:
         scrollPos=scrollPos+1
-        if (startAnimPhase==0):
+        if (idleAnimPhase==0):
             scrollDisplay=scrollText[scrollPos:scrollPos+5]
             scrollBrightness=scrollBrightness+20
             if scrollBrightness>200:
@@ -317,46 +344,59 @@ def animStart():
 
             if (scrollPos>len(scrollText)-5):
                 scrollPos=0
-                startAnimPhase=1
+                idleAnimPhase=1
  
-        if (startAnimPhase==1):
+        if (idleAnimPhase==1):
             scrollDisplay="HIGH "
             for i in range(maxLetters):
-                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((250, 250, 250))) 
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((200, 200, 250))) 
             if (scrollPos==4):
                 scrollPos=0
-                startAnimPhase=2
+                idleAnimPhase=2
  
-        if (startAnimPhase==2):
+        if (idleAnimPhase==2):
             scrollDisplay="SCORE"
             for i in range(maxLetters):
-                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((250, 250, 250)))
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((200, 200, 250)))
             if (scrollPos==4):
                 scrollPos=0
-                startAnimPhase=3
+                idleAnimPhase=3
 
-        if (startAnimPhase==3):
+        if (idleAnimPhase==3):
+            scrollDisplay=highName
+            for i in range(maxLetters):
+                if scrollPos%3 == 0:
+                    tkCanvas.itemconfigure(letterIDs[i],fill="white")
+                else:
+                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((120, 120, 200)))
+            if (scrollPos==12):
+                scrollPos=0
+                idleAnimPhase=4
+
+        if (idleAnimPhase==4):
             scrollDisplay=(str(highScore).zfill(5))[:5]
             for i in range(maxLetters):
                 if scrollPos%3 == 0:
                     tkCanvas.itemconfigure(letterIDs[i],fill="white")
                 else:
-                    tkCanvas.itemconfigure(letterIDs[i],fill="black")
+                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((120, 120, 200)))
             if (scrollPos==12):
                 scrollPos=0
-                startAnimPhase=0
+                idleAnimPhase=0
+
         updateLetters(scrollDisplay)
             
         
 
-    if highScoreAnim > 0:
-        if (highScoreAnim%50==0):
-            tkCanvas.itemconfigure(pointsID,fill="white")        
-        if (highScoreAnim%70==0):
-            tkCanvas.itemconfigure(pointsID,fill=pointscolor)        
-        highScoreAnim=highScoreAnim-1
-        if (highScoreAnim==0):
-            tkCanvas.itemconfigure(pointsID,fill=pointscolor)        
+def highAnim():
+    if (highScoreAnim%50==0):
+        tkCanvas.itemconfigure(pointsID,fill="white")        
+    if (highScoreAnim%70==0):
+        tkCanvas.itemconfigure(pointsID,fill=pointscolor)
+        if (highScoreAnim>400):
+            tkCanvas.abs_move(nameID,0, 0)
+        else:
+            tkCanvas.abs_move(nameID,0, int(-(400-highScoreAnim)/2))
 
 
 def animLettersWon():
@@ -377,8 +417,8 @@ def animLettersLost():
 
 
 def ballLost():
-    global lives, gameState, ballLostBypass
-    global highScore, highScoreAnim, scrollText, scrollPos, startAnimPhase
+    global lives, gameState, ballLostBypass, actword
+    global highScore, highScoreAnim, scrollText, scrollPos, idleAnimPhase
 
     if ballLostBypass>0:
         return
@@ -396,20 +436,23 @@ def ballLost():
         pygame.time.delay(1000)
         if (points<=highScore):
             playSound("t3")
-            updateLetters(" ")
-            startAnimPhase=0
+            updateLetters("     ")
+            gameState=GAMESTATE_IDLE
         else:
             playSound("applause")
             highScore=points
-            highScoreAnim=500
-            startAnimPhase=1
+            highScoreAnim=800
+            actword="A    "
+            updateLetters(actword)
+            gameState=GAMESTATE_HIGHSCORE
+            tkCanvas.itemconfigure(nameID,state='normal')
 
+        scrollPos=0
+        idleAnimPhase=0
         sendCommand(CMD_LCD_GOIDLE);
         sendCommand(GAMESTATE_IDLE);
-        gameState=GAMESTATE_IDLE
-        scrollPos=0
         tkCanvas.itemconfigure(clockID,state='hidden')      
-        tkCanvas.itemconfigure(coinID,state='normal')
+        tkCanvas.itemconfigure(coinID,state='hidden')
 
     updatePinballs()
 
@@ -420,7 +463,7 @@ def ballLost():
 
 def processGameEvents():
     global winAnim, looseAnim, clockAnim, lives, keyPressed
-    global points, highScore, gameState, ballLostBypass,actword
+    global points, highScore, highScoreAnim, highName, gameState, ballLostBypass,actword
     
     userInput=""
     if (serialPortOpen==1) and (ser.inWaiting() > 0):
@@ -492,7 +535,22 @@ def processGameEvents():
                         clockAnim=3600
                     else:
                         sendCommand(CMD_RANDOM_LIGHT)
-                        
+
+            if (gameState==GAMESTATE_HIGHSCORE):
+                if (inputNumber==2):
+                    upLetter()
+                    playSound("move")
+                    highScoreAnim=800
+
+                if (inputNumber==3):
+                    changeLetter()
+                    playSound("trommel")
+                    highScoreAnim=800
+
+                if (inputNumber==4):
+                    downLetter()
+                    playSound("move")                     
+                    highScoreAnim=800
                     
         except ValueError as e:
             inputString=str(userInput)
@@ -533,7 +591,17 @@ def processGameEvents():
         ballLostBypass=ballLostBypass-1
 
     if (gameState==GAMESTATE_IDLE):
-        animStart()
+        idleAnim()
+        
+    if (gameState==GAMESTATE_HIGHSCORE):
+        highAnim()
+        highScoreAnim=highScoreAnim-1
+        if highScoreAnim==0:
+            highName=actword
+            gameState=GAMESTATE_IDLE
+            tkCanvas.itemconfigure(nameID,state='hidden')
+            tkCanvas.itemconfigure(pointsID,fill=pointscolor)
+
 
     if (gameState==GAMESTATE_LOST):
         animLettersLost()
@@ -597,6 +665,7 @@ pointfont = tkFont.Font(family="segment", size = pointFontSize)
 letterwidth = letterfont.measure("W")+20
 pinballImg=ImageTk.PhotoImage(file=getPath("../img/pinball1.png"))
 coinImg=ImageTk.PhotoImage(file=getPath("../img/coin.jpg"))
+nameImg=ImageTk.PhotoImage(file=getPath("../img/name.jpg"))
 
 pygame.mixer.init()
 playSound("w5")
@@ -634,6 +703,15 @@ goalWord=lines[randrange(len(lines))]
 createScene()
 updateLetters("     ")
 updatePinballs()
+tkCanvas.itemconfigure(nameID,state='hidden')
+tkCanvas.itemconfigure(coinID,state='hidden')
+
+#gameState=GAMESTATE_HIGHSCORE
+#highScoreAnim=800
+#actword="A    "
+#updateLetters(actword)
+#tkCanvas.itemconfigure(nameID,state='normal')
+
 
 processGameEvents()
 root.mainloop()
