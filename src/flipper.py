@@ -74,7 +74,7 @@ idleAnimCount=0
 scrollPos=0
 
 pinballXPos=80
-pinballYPos=70
+pinballYPos=80
 pinballWidth=110
 clockSize=105
 
@@ -417,7 +417,7 @@ def animLettersLost():
 
 
 def ballLost():
-    global lives, gameState, ballLostBypass, actword
+    global lives, gameState, ballLostBypass, actword, modifyLetter
     global highScore, highScoreAnim, scrollText, scrollPos, idleAnimPhase
 
     if ballLostBypass>0:
@@ -442,9 +442,10 @@ def ballLost():
             playSound("applause")
             highScore=points
             highScoreAnim=800
+            gameState=GAMESTATE_HIGHSCORE
+            modifyLetter=0
             actword="A    "
             updateLetters(actword)
-            gameState=GAMESTATE_HIGHSCORE
             tkCanvas.itemconfigure(nameID,state='normal')
 
         scrollPos=0
