@@ -55,6 +55,9 @@ activeboardcolor="red"
 backgroundcolor="black"
 pointscolor="#FF2020"
 scrollBackgroundcolor="#600040"
+#scrollBackgroundcolor="#FF2020"
+
+
 scrollLettercolor="#c0c0ff"
 scrollBrightness=50
 
