@@ -3,6 +3,8 @@
 **A Pinball Machine for solving Anagram Puzzles! (In cooperation with David Moises)**
 
 
+![flipperBreadboardFoto1](./img/flipper1.jpg)
+
 
 # Preparation
 
@@ -18,14 +20,6 @@
 | 6    | Breadboard, jumper wires, buttons/reed switches | 
 
 
-## Connect components as shown
-
-![flipperBreadboardFoto1](./img/flipper_breadboard1.jpg)
-![flipperBreadboardFoto2](./img/flipper_breadboard2.jpg)
-![flipperBreadboardFoto3](./img/flipper_breadboard3.jpg)
-![flipperBreadboardFoto4](./img/flipper_breadboard4.jpg)
-
-(TBD: update photos!)
 
 ## Install SW-Requirements
 
@@ -54,3 +48,8 @@
 * configure read-only filesystem (Preferences -> RaspberryPi Configuration -> Performance)
 
 
+## More photos
+
+![flipperBreadboardFoto1](./img/flipper2.jpg)
+![flipperBreadboardFoto1](./img/flipper3.jpg)
+![flipperBreadboardFoto1](./img/flipper_breadboard1.jpg)
