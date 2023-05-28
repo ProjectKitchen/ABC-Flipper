@@ -44,7 +44,7 @@
 int blinkIdleTime = 2000;
 int blinkActiveTime = 500;
 int blinkWinTime = 200;
-int bellOnTime = 0, ballOnTime = 0, bumperLightOnTime=0;
+int bellOnTime = 0, ballOnTime = 0, bumperLightOnTime=0, topLightBlink=0;
 
 uint8_t buttonState[NUM_BUTTONS] = {0};
 uint8_t buttonDebounce[NUM_BUTTONS] = {0};
@@ -60,6 +60,7 @@ uint32_t buttonTimestamp[NUM_BUTTONS] = {0};
 #define CMD_TRIGGER_BELL  'g'
 #define CMD_BUMPER_LIGHT  'i'
 #define CMD_RANDOM_LIGHT  'h'
+#define CMD_TOP_LIGHT     'j'
 
 
 int gameState = GAMESTATE_IDLE;
@@ -208,6 +209,9 @@ void loop() {
     else if (c == CMD_RANDOM_LIGHT) {
       setRandomLights(1);      
     }
+    else if (c == CMD_TOP_LIGHT) {
+      topLightBlink=300;
+    }
     else Serial1.write((byte)c);
   }
 
@@ -225,6 +229,14 @@ void loop() {
     bumperLightOnTime--;
     if (!bumperLightOnTime) digitalWrite(BUMPERLIGHT_RELAIS, HIGH);
   }
+
+  if (topLightBlink) {
+    topLightBlink--;
+    if ((topLightBlink%100)<30) setTopLights(1);
+    else setTopLights(0);
+    if (!topLightBlink) setTopLights(0);
+  }
+
 
   if (gameState == GAMESTATE_FLIPPER) {
     // control throwers via flipper buttons!

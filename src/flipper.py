@@ -46,6 +46,7 @@ CMD_TRIGGER_BALL='f'
 CMD_TRIGGER_BELL='g'
 CMD_RANDOM_LIGHT = 'h'
 CMD_BUMPER_LIGHT = 'i'
+CMD_TOP_LIGHT = 'j'
 
 
 screenstate = True
@@ -208,14 +209,19 @@ def downLetter():
 
 def addLetter(pos):
     global actword
-    if (len(actword)<maxLetters) and (actTargets[pos] != ' '):
+    if len(actword)>=maxLetters:
+        return
+    
+    sendLCDLetter(pos+1,actTargets[pos])
+    if (actTargets[pos] != ' '):
         actword=actword+actTargets[pos]
         updateLetters(actword)
         playSound('f'+str(pos+1))
         actTargets[pos]=' '
-        printTargetsLCD()
+        #printTargetsLCD()
     else:
         playSound('x'+str(random.randint(MIN_FLOPSOUND,MAX_FLOPSOUND)))
+        
 
 def keydown(e):
     global keyPressed
@@ -539,6 +545,7 @@ def processGameEvents():
                         clockAnim=3600
                     else:
                         sendCommand(CMD_RANDOM_LIGHT)
+                        sendCommand(CMD_TOP_LIGHT);
 
             if (gameState==GAMESTATE_HIGHSCORE):
                 if (inputNumber==2):
@@ -569,6 +576,7 @@ def processGameEvents():
                     for i in range (maxLetters):
                         if (actTargets[i] != ' '):
                             actword=actword+actTargets[i]
+                            actTargets[i]=' '
                     printTargetsLCD()        
                     gameState=GAMESTATE_ANAGRAM
                     sendCommand(GAMESTATE_ANAGRAM)
