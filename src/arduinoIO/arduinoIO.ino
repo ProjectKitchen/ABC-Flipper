@@ -21,7 +21,7 @@
 #define NUM_LIGHTS 8
 #define FIRST_LIGHT 18
 
-#define NUM_TOPLIGHTS 4
+#define NUM_TOPLIGHTS 3 
 #define FIRST_TOPLIGHT 18
 
 #define NUM_RANDOMLIGHTS 4
@@ -90,7 +90,14 @@ void setup() {
 
 
 void setRandomLights(uint8_t mode) {
-  uint8_t pattern=random(1<<NUM_RANDOMLIGHTS);
+  //uint8_t pattern=random(1<<NUM_RANDOMLIGHTS);
+  static uint8_t pattern=4;
+  if (mode==1) {  
+    if (pattern==4) pattern=8; else pattern=4;
+  }
+  else if (mode==2) {
+    if (pattern==12) pattern=0; else pattern=12;
+  }
   if (!mode) pattern=0;   // clear all lights
   
   for (uint8_t i =0;i<NUM_RANDOMLIGHTS;i++)
@@ -115,7 +122,7 @@ void processBlinks() {
         digitalWrite(FIRST_TOPLIGHT + blinkPos, HIGH);
         if (++blinkPos >= NUM_TOPLIGHTS) blinkPos = 0;
         digitalWrite(FIRST_TOPLIGHT + blinkPos, LOW);
-        if (random(20)>15) setRandomLights(1);
+        if (random(20)>5) setRandomLights(1);
       }
       break;
     case GAMESTATE_FLIPPER:
@@ -124,6 +131,7 @@ void processBlinks() {
 
     case GAMESTATE_ANAGRAM:
       if (++blinkCount > blinkActiveTime) {
+        setRandomLights(2);
         blinkCount = 0;
         digitalWrite(FIRST_TOPLIGHT + blinkPos, HIGH);
         if (++blinkPos >= NUM_TOPLIGHTS) blinkPos = 0;
@@ -134,6 +142,7 @@ void processBlinks() {
     case GAMESTATE_WON:
       if (++blinkCount > blinkWinTime) {
         blinkCount = 0;
+        setRandomLights(2);
         for (int i = 0; i < NUM_TOPLIGHTS; i++)
           digitalWrite(FIRST_TOPLIGHT + i, HIGH);
         if (++blinkPos >= 5) {
@@ -210,7 +219,7 @@ void loop() {
       setRandomLights(1);      
     }
     else if (c == CMD_TOP_LIGHT) {
-      topLightBlink=300;
+      topLightBlink=800;
     }
     else Serial1.write((byte)c);
   }
@@ -232,7 +241,7 @@ void loop() {
 
   if (topLightBlink) {
     topLightBlink--;
-    if ((topLightBlink%100)<30) setTopLights(1);
+    if ((topLightBlink%300)<200) setTopLights(1);
     else setTopLights(0);
     if (!topLightBlink) setTopLights(0);
   }

@@ -219,6 +219,7 @@ def addLetter(pos):
         playSound('f'+str(pos+1))
         actTargets[pos]=' '
         #printTargetsLCD()
+        sendLCDLetter(pos+1,actTargets[pos])
     else:
         playSound('x'+str(random.randint(MIN_FLOPSOUND,MAX_FLOPSOUND)))
         
@@ -271,7 +272,7 @@ def createScene():
 
     pointsID=tkCanvas.create_text(int(screen_width/3*2), 40, text="0000000", anchor="nw", font=pointfont, fill=pointscolor)
     clockID =tkCanvas.create_arc(0,pinballYPos, clockSize,pinballYPos+clockSize, start=90, extent=0, fill="#000000")
-    coinID =tkCanvas.create_image(pinballXPos, pinballYPos, image=coinImg, anchor="center")
+    coinID =tkCanvas.create_image(pinballXPos+100, pinballYPos, image=coinImg, anchor="center")
     nameID =tkCanvas.create_image(230, 90, image=nameImg, anchor="center")
 
 def updateLetters(string):
