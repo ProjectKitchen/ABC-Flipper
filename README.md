@@ -4,6 +4,7 @@
 
 
 ![flipperBreadboardFoto1](./img/flipper1.jpg)
+![flipperBreadboardFoto1](./img/flipper4.jpg)
 
 
 # Preparation
