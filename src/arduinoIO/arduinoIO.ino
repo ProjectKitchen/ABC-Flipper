@@ -42,6 +42,7 @@
 #define BUTTON_BYPASS_TIME 100
 
 int blinkIdleTime = 2000;
+int blinkGameTime = 200;
 int blinkActiveTime = 500;
 int blinkWinTime = 200;
 int bellOnTime = 0, ballOnTime = 0, bumperLightOnTime=0, topLightBlink=0;
@@ -126,7 +127,27 @@ void processBlinks() {
       }
       break;
     case GAMESTATE_FLIPPER:
-      // currently no periodic light effects during gameplay
+      if (++blinkCount > blinkIdleTime) {
+        blinkCount = 0;
+        switch (random(3)) {
+          case 0:
+             digitalWrite(FIRST_TOPLIGHT, HIGH);
+             digitalWrite(FIRST_TOPLIGHT+1, LOW);
+             digitalWrite(FIRST_TOPLIGHT+2, LOW);
+          break;
+          case 1:
+             digitalWrite(FIRST_TOPLIGHT, LOW);
+             digitalWrite(FIRST_TOPLIGHT+1, HIGH);
+             digitalWrite(FIRST_TOPLIGHT+2, LOW);
+          break;
+          case 2:
+             digitalWrite(FIRST_TOPLIGHT, LOW);
+             digitalWrite(FIRST_TOPLIGHT+1, LOW);
+             digitalWrite(FIRST_TOPLIGHT+2, HIGH);
+          break;
+        
+          }
+        }
       break;
 
     case GAMESTATE_ANAGRAM:

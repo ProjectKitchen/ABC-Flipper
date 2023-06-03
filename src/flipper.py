@@ -503,13 +503,16 @@ def processGameEvents():
                 
                 if (inputNumber==2):
                     switchLetterRight()
+                    clockAnim=3600
                     playSound("move")
 
                 if (inputNumber==3):
+                    clockAnim=3600
                     changeLetter()
                     playSound("trommel")
 
                 if (inputNumber==4):
+                    clockAnim=3600
                     switchLetterLeft()
                     playSound("move")
 
@@ -592,9 +595,13 @@ def processGameEvents():
 
 
     if clockAnim>0:
-        clockAnim=clockAnim-1
-        tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/10))
-        if (clockAnim==0):
+        clockAnim=clockAnim-2
+        if (clockAnim%100 > 50):
+            tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/10))
+        else:
+            tkCanvas.itemconfigure(clockID,extent=359)
+            
+        if (clockAnim<=0):
             playSound("n2")
             gameState=GAMESTATE_LOST
             updateLetters(goalWord)
