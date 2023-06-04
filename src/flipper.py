@@ -80,6 +80,9 @@ scrollPos=0
 pinballXPos=80
 pinballYPos=80
 pinballWidth=110
+
+clockXPos=28
+clockYPos=25
 clockSize=105
 
 letterIDs = array.array('i',(0 for i in range(0,maxLetters))) 
@@ -271,7 +274,7 @@ def createScene():
         pinballIDs[i]=tkCanvas.create_image(pinballXPos+i*pinballWidth, pinballYPos, image=pinballImg, anchor="center")
 
     pointsID=tkCanvas.create_text(int(screen_width/3*2), 40, text="0000000", anchor="nw", font=pointfont, fill=pointscolor)
-    clockID =tkCanvas.create_arc(0,pinballYPos, clockSize,pinballYPos+clockSize, start=90, extent=0, fill="#000000")
+    clockID =tkCanvas.create_arc(0,clockYPos, clockSize, clockYPos+clockSize, start=90, extent=0, fill="#000000")
     coinID =tkCanvas.create_image(pinballXPos+100, pinballYPos, image=coinImg, anchor="center")
     nameID =tkCanvas.create_image(230, 90, image=nameImg, anchor="center")
 
@@ -406,7 +409,8 @@ def highAnim():
         if (highScoreAnim>400):
             tkCanvas.abs_move(nameID,0, 0)
         else:
-            tkCanvas.abs_move(nameID,0, int(-(400-highScoreAnim)/2))
+            tkCanvas.abs_move(nameID,0, int(highScoreAnim/2-200))
+
 
 
 def animLettersWon():
@@ -544,8 +548,9 @@ def processGameEvents():
                         sendCommand(GAMESTATE_ANAGRAM)
                         playSound("gong")
                         updateLetters(actword)
-                        tkCanvas.itemconfigure(clockID,state='normal')      
-                        tkCanvas.abs_move(clockID,pinballXPos+(lives-1)*pinballWidth-5, int(pinballYPos-clockSize/2)-5)
+                        tkCanvas.itemconfigure(clockID,state='normal')
+                        tkCanvas.itemconfigure(clockID,extent=359)                        
+                        tkCanvas.abs_move(clockID,clockXPos+(lives-1)*pinballWidth, clockYPos)
                         clockAnim=3600
                     else:
                         sendCommand(CMD_RANDOM_LIGHT)
@@ -585,8 +590,9 @@ def processGameEvents():
                     gameState=GAMESTATE_ANAGRAM
                     sendCommand(GAMESTATE_ANAGRAM)
                     updateLetters(actword)
-                    tkCanvas.itemconfigure(clockID,state='normal')      
-                    tkCanvas.abs_move(clockID,pinballXPos+(lives-1)*pinballWidth-5, int(pinballYPos-clockSize/2)-5)
+                    tkCanvas.itemconfigure(clockID,state='normal')
+                    tkCanvas.itemconfigure(clockID,extent=359)                    
+                    tkCanvas.abs_move(clockID,clockXPos+(lives-1)*pinballWidth-5, clockYPos)
                     clockAnim=3600
                     
                 if (inputString==';') or (inputString=='<') or (inputString=='='):
@@ -596,7 +602,7 @@ def processGameEvents():
 
     if clockAnim>0:
         clockAnim=clockAnim-2
-        if (clockAnim%100 > 50):
+        if (clockAnim%200 > 120):
             tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/10))
         else:
             tkCanvas.itemconfigure(clockID,extent=359)
