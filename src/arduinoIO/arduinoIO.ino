@@ -3,7 +3,7 @@
 //  arduinoIO.ino
 //  interface to flipper.py
 //  hardware: Teensy2.0++
-//  
+//
 //  buttons/sensors connected to in4-in17
 //  relais connected to out18-out25 (lights) and out38-out45(magnets)
 
@@ -21,7 +21,7 @@
 #define NUM_LIGHTS 8
 #define FIRST_LIGHT 18
 
-#define NUM_TOPLIGHTS 3 
+#define NUM_TOPLIGHTS 3
 #define FIRST_TOPLIGHT 18
 
 #define NUM_RANDOMLIGHTS 4
@@ -40,12 +40,15 @@
 #define BUMPERLIGHT_DURATION 200
 #define BUTTON_DEBOUNCE_CYCLES  4
 #define BUTTON_BYPASS_TIME 100
+#define FLIPPERCOIL_MAXTIME 8000
+#define FLIPPER_BYPASS_TIME 5000
 
 int blinkIdleTime = 2000;
-int blinkGameTime = 200;
+int blinkGameTime = 750;
 int blinkActiveTime = 500;
 int blinkWinTime = 200;
-int bellOnTime = 0, ballOnTime = 0, bumperLightOnTime=0, topLightBlink=0;
+int bellOnTime = 0, ballOnTime = 0, bumperLightOnTime = 0, topLightBlink = 0;
+int thr1Count = 0, thr2Count = 0, flipper1Bypass = 0, flipper2Bypass = 0;
 
 uint8_t buttonState[NUM_BUTTONS] = {0};
 uint8_t buttonDebounce[NUM_BUTTONS] = {0};
@@ -92,25 +95,25 @@ void setup() {
 
 void setRandomLights(uint8_t mode) {
   //uint8_t pattern=random(1<<NUM_RANDOMLIGHTS);
-  static uint8_t pattern=4;
-  if (mode==1) {  
-    if (pattern==4) pattern=8; else pattern=4;
+  static uint8_t pattern = 4;
+  if (mode == 1) {
+    if (pattern == 4) pattern = 8; else pattern = 4;
   }
-  else if (mode==2) {
-    if (pattern==12) pattern=0; else pattern=12;
+  else if (mode == 2) {
+    if (pattern == 12) pattern = 0; else pattern = 12;
   }
-  if (!mode) pattern=0;   // clear all lights
-  
-  for (uint8_t i =0;i<NUM_RANDOMLIGHTS;i++)
-    if (pattern&(1<<i)) digitalWrite(FIRST_RANDOMLIGHT+i,LOW); 
-    else digitalWrite(FIRST_RANDOMLIGHT+i,HIGH);
+  if (!mode) pattern = 0; // clear all lights
+
+  for (uint8_t i = 0; i < NUM_RANDOMLIGHTS; i++)
+    if (pattern & (1 << i)) digitalWrite(FIRST_RANDOMLIGHT + i, LOW);
+    else digitalWrite(FIRST_RANDOMLIGHT + i, HIGH);
 }
 
 void setTopLights(uint8_t mode) {
-  
-  for (uint8_t i =0;i<NUM_TOPLIGHTS;i++)
-    if (mode) digitalWrite(FIRST_TOPLIGHT+i,LOW); 
-    else digitalWrite(FIRST_TOPLIGHT+i,HIGH);
+
+  for (uint8_t i = 0; i < NUM_TOPLIGHTS; i++)
+    if (mode) digitalWrite(FIRST_TOPLIGHT + i, LOW);
+    else digitalWrite(FIRST_TOPLIGHT + i, HIGH);
 
 }
 
@@ -123,31 +126,31 @@ void processBlinks() {
         digitalWrite(FIRST_TOPLIGHT + blinkPos, HIGH);
         if (++blinkPos >= NUM_TOPLIGHTS) blinkPos = 0;
         digitalWrite(FIRST_TOPLIGHT + blinkPos, LOW);
-        if (random(20)>5) setRandomLights(1);
+        if (random(20) > 5) setRandomLights(1);
       }
       break;
     case GAMESTATE_FLIPPER:
-      if (++blinkCount > blinkIdleTime) {
+      if (++blinkCount > blinkGameTime) {
         blinkCount = 0;
         switch (random(3)) {
           case 0:
-             digitalWrite(FIRST_TOPLIGHT, HIGH);
-             digitalWrite(FIRST_TOPLIGHT+1, LOW);
-             digitalWrite(FIRST_TOPLIGHT+2, LOW);
-          break;
+            digitalWrite(FIRST_TOPLIGHT, HIGH);
+            digitalWrite(FIRST_TOPLIGHT + 1, LOW);
+            digitalWrite(FIRST_TOPLIGHT + 2, LOW);
+            break;
           case 1:
-             digitalWrite(FIRST_TOPLIGHT, LOW);
-             digitalWrite(FIRST_TOPLIGHT+1, HIGH);
-             digitalWrite(FIRST_TOPLIGHT+2, LOW);
-          break;
+            digitalWrite(FIRST_TOPLIGHT, LOW);
+            digitalWrite(FIRST_TOPLIGHT + 1, HIGH);
+            digitalWrite(FIRST_TOPLIGHT + 2, LOW);
+            break;
           case 2:
-             digitalWrite(FIRST_TOPLIGHT, LOW);
-             digitalWrite(FIRST_TOPLIGHT+1, LOW);
-             digitalWrite(FIRST_TOPLIGHT+2, HIGH);
-          break;
-        
-          }
+            digitalWrite(FIRST_TOPLIGHT, LOW);
+            digitalWrite(FIRST_TOPLIGHT + 1, LOW);
+            digitalWrite(FIRST_TOPLIGHT + 2, HIGH);
+            break;
+
         }
+      }
       break;
 
     case GAMESTATE_ANAGRAM:
@@ -197,15 +200,15 @@ void loop() {
         // handle button press
         if ((millis() - buttonTimestamp[i]) > BUTTON_BYPASS_TIME) {
           buttonTimestamp[i] = millis();
-          Serial.print((char) ('0' + i)); 
-          if (FIRST_BUTTON+i == BUMPER_BUTTON) {
-            bumperLightOnTime=BUMPERLIGHT_DURATION;
+          Serial.print((char) ('0' + i));
+          if (FIRST_BUTTON + i == BUMPER_BUTTON) {
+            bumperLightOnTime = BUMPERLIGHT_DURATION;
             digitalWrite(BUMPERLIGHT_RELAIS, LOW);
           }
         }
       }
     }
-    
+
     if ((tmp == HIGH) && (buttonDebounce[i] > 0)) {
       buttonDebounce[i]--;
       if ((buttonDebounce[i] == 0) && buttonState[i])  {
@@ -233,14 +236,14 @@ void loop() {
       ballOnTime = BALL_DURATION;
     }
     else if (c == CMD_BUMPER_LIGHT) {
-      bumperLightOnTime = BUMPERLIGHT_DURATION;      
+      bumperLightOnTime = BUMPERLIGHT_DURATION;
       digitalWrite(BUMPERLIGHT_RELAIS, LOW);
     }
     else if (c == CMD_RANDOM_LIGHT) {
-      setRandomLights(1);      
+      setRandomLights(1);
     }
     else if (c == CMD_TOP_LIGHT) {
-      topLightBlink=800;
+      topLightBlink = 800;
     }
     else Serial1.write((byte)c);
   }
@@ -262,16 +265,49 @@ void loop() {
 
   if (topLightBlink) {
     topLightBlink--;
-    if ((topLightBlink%300)<200) setTopLights(1);
+    if ((topLightBlink % 300) < 200) setTopLights(1);
     else setTopLights(0);
     if (!topLightBlink) setTopLights(0);
   }
 
 
+  // control flipper coils via buttons
   if (gameState == GAMESTATE_FLIPPER) {
-    // control throwers via flipper buttons!
-    digitalWrite (THROWER1_RELAIS, digitalRead(THROWER1_BUTTON));
-    digitalWrite (THROWER2_RELAIS, digitalRead(THROWER2_BUTTON));
+
+    if (!digitalRead(THROWER1_BUTTON)) {
+      if ((thr1Count < FLIPPERCOIL_MAXTIME) && (!flipper1Bypass)) {
+        thr1Count++;
+        if (thr1Count == FLIPPERCOIL_MAXTIME) flipper1Bypass = FLIPPER_BYPASS_TIME;
+        else digitalWrite(THROWER1_RELAIS, LOW);
+      }
+
+    }
+    else {
+      thr1Count = 0;
+      digitalWrite(THROWER1_RELAIS, HIGH);
+    }
+    if (flipper1Bypass) {
+      flipper1Bypass--;
+      digitalWrite(THROWER1_RELAIS, HIGH);
+    }
+
+    if (!digitalRead(THROWER2_BUTTON)) {
+      if ((thr2Count < FLIPPERCOIL_MAXTIME) && (!flipper2Bypass)) {
+        thr2Count++;
+        if (thr2Count == FLIPPERCOIL_MAXTIME) flipper2Bypass = FLIPPER_BYPASS_TIME;
+        else digitalWrite(THROWER2_RELAIS, LOW);
+      }
+
+    }
+    else {
+      thr2Count = 0;
+      digitalWrite(THROWER2_RELAIS, HIGH);
+    }
+    if (flipper2Bypass) {
+      flipper2Bypass--;
+      digitalWrite(THROWER2_RELAIS, HIGH);
+    }
+
   } else {
     // deactivate throwers!
     digitalWrite (THROWER1_RELAIS, HIGH);
