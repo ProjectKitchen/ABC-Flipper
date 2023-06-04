@@ -55,8 +55,9 @@ boardcolor="gray"
 activeboardcolor="red"
 backgroundcolor="black"
 pointscolor="#FF2020"
-scrollBackgroundcolor="#600040"
-#scrollBackgroundcolor="#FF2020"
+#scrollBackgroundcolor="#600040"
+#scrollBackgroundcolor="#d01010"
+scrollBackgroundcolor="#0000a0"
 
 
 scrollLettercolor="#c0c0ff"
@@ -276,7 +277,7 @@ def createScene():
     pointsID=tkCanvas.create_text(int(screen_width/3*2), 40, text="0000000", anchor="nw", font=pointfont, fill=pointscolor)
     clockID =tkCanvas.create_arc(0,clockYPos, clockSize, clockYPos+clockSize, start=90, extent=0, fill="#000000")
     coinID =tkCanvas.create_image(pinballXPos+100, pinballYPos, image=coinImg, anchor="center")
-    nameID =tkCanvas.create_image(230, 90, image=nameImg, anchor="center")
+    nameID =tkCanvas.create_image(0, 5, image=nameImg, anchor="nw")
 
 def updateLetters(string):
     global winAnim, clockAnim
@@ -348,12 +349,15 @@ def idleAnim():
         scrollPos=scrollPos+1
         if (idleAnimPhase==0):
             scrollDisplay=scrollText[scrollPos:scrollPos+5]
-            scrollBrightness=scrollBrightness+20
-            if scrollBrightness>200:
-                scrollBrightness=0
+
+            #scrollBrightness=scrollBrightness+20
+            #if scrollBrightness>250:
+            #    scrollBrightness=0
+            #for i in range(maxLetters):
+            #    b=(scrollBrightness+i*10)%250
+            #    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((70+abs(125-b), 70+abs(125-b), 230))) 
             for i in range(maxLetters):
-                b=(scrollBrightness+i*10)%200
-                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((80+abs(100-b), 80+abs(100-b), 230))) 
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 255, 255)))
 
             if (scrollPos>len(scrollText)-5):
                 scrollPos=0
@@ -362,7 +366,7 @@ def idleAnim():
         if (idleAnimPhase==1):
             scrollDisplay="HIGH "
             for i in range(maxLetters):
-                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((200, 200, 250))) 
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 0, 100))) 
             if (scrollPos==4):
                 scrollPos=0
                 idleAnimPhase=2
@@ -370,7 +374,7 @@ def idleAnim():
         if (idleAnimPhase==2):
             scrollDisplay="SCORE"
             for i in range(maxLetters):
-                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((200, 200, 250)))
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 0, 100)))
             if (scrollPos==4):
                 scrollPos=0
                 idleAnimPhase=3
@@ -381,7 +385,8 @@ def idleAnim():
                 if scrollPos%3 == 0:
                     tkCanvas.itemconfigure(letterIDs[i],fill="white")
                 else:
-                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((120, 120, 200)))
+                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 0, 100)))
+                    #tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((0, 0, 80)))
             if (scrollPos==12):
                 scrollPos=0
                 idleAnimPhase=4
@@ -390,9 +395,10 @@ def idleAnim():
             scrollDisplay=(str(highScore).zfill(5))[:5]
             for i in range(maxLetters):
                 if scrollPos%3 == 0:
-                    tkCanvas.itemconfigure(letterIDs[i],fill="white")
+                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 0, 100)))
+                    #tkCanvas.itemconfigure(letterIDs[i],fill="white")
                 else:
-                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((120, 120, 200)))
+                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((0, 0, 70)))
             if (scrollPos==12):
                 scrollPos=0
                 idleAnimPhase=0
@@ -406,11 +412,11 @@ def highAnim():
         tkCanvas.itemconfigure(pointsID,fill="white")        
     if (highScoreAnim%70==0):
         tkCanvas.itemconfigure(pointsID,fill=pointscolor)
+    if (highScoreAnim%20==0):
         if (highScoreAnim>400):
-            tkCanvas.abs_move(nameID,0, 0)
+            tkCanvas.abs_move(nameID,0, 5)
         else:
             tkCanvas.abs_move(nameID,0, int(highScoreAnim/2-200))
-
 
 
 def animLettersWon():
@@ -601,11 +607,11 @@ def processGameEvents():
 
 
     if clockAnim>0:
-        clockAnim=clockAnim-2
-        if (clockAnim%200 > 120):
+        if (clockAnim%200 == 0):
             tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/10))
-        else:
+        if (clockAnim%200 == 120):
             tkCanvas.itemconfigure(clockID,extent=359)
+        clockAnim=clockAnim-2
             
         if (clockAnim<=0):
             playSound("n2")
