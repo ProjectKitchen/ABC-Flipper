@@ -280,14 +280,17 @@ def createScene():
     nameID =tkCanvas.create_image(0, 5, image=nameImg, anchor="nw")
 
 def updateLetters(string):
-    global winAnim, clockAnim
+    global winAnim, clockAnim, idleAnimPhase
     for i in range (len(string)):
         tkCanvas.itemconfigure(letterIDs[i],text=str(string[i]))        
     for i in range(len(string),maxLetters):
         tkCanvas.itemconfigure(letterIDs[i],text=' ')
     for i in range(maxLetters):
         if (gameState==GAMESTATE_IDLE):
-            tkCanvas.itemconfigure(boardIDs[i],fill=scrollBackgroundcolor)
+            if (idleAnimPhase==0):  
+                tkCanvas.itemconfigure(boardIDs[i],fill=scrollBackgroundcolor)
+            else:
+                tkCanvas.itemconfigure(boardIDs[i],fill=_from_rgb((220, 220, 220)))
             # tkCanvas.itemconfigure(letterIDs[i],fill=scrollLettercolor)
         else:
             tkCanvas.itemconfigure(letterIDs[i],fill='yellow')
@@ -366,7 +369,7 @@ def idleAnim():
         if (idleAnimPhase==1):
             scrollDisplay="HIGH "
             for i in range(maxLetters):
-                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 0, 100))) 
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 20, 20))) 
             if (scrollPos==4):
                 scrollPos=0
                 idleAnimPhase=2
@@ -374,7 +377,7 @@ def idleAnim():
         if (idleAnimPhase==2):
             scrollDisplay="SCORE"
             for i in range(maxLetters):
-                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 0, 100)))
+                tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 20, 20)))
             if (scrollPos==4):
                 scrollPos=0
                 idleAnimPhase=3
@@ -385,7 +388,7 @@ def idleAnim():
                 if scrollPos%3 == 0:
                     tkCanvas.itemconfigure(letterIDs[i],fill="white")
                 else:
-                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 0, 100)))
+                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 20, 20)))
                     #tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((0, 0, 80)))
             if (scrollPos==12):
                 scrollPos=0
@@ -395,7 +398,7 @@ def idleAnim():
             scrollDisplay=(str(highScore).zfill(5))[:5]
             for i in range(maxLetters):
                 if scrollPos%3 == 0:
-                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 0, 100)))
+                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 20, 20)))
                     #tkCanvas.itemconfigure(letterIDs[i],fill="white")
                 else:
                     tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((0, 0, 70)))
