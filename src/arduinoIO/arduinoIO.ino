@@ -7,7 +7,7 @@
 //  buttons/sensors connected to in4-in17
 //  relais connected to out18-out25 (lights) and out38-out45(magnets)
 
-#define NUM_BUTTONS 14
+#define NUM_BUTTONS 13
 #define FIRST_BUTTON 4
 
 #define NUM_RELAIS   8
@@ -31,8 +31,9 @@
 
 #define THROWER1_BUTTON 6
 #define THROWER2_BUTTON 8
-#define JOKER_BUTTON  14
-#define BUMPER_BUTTON 13
+#define JOKER_BUTTON   14
+#define BUMPER_BUTTON  13
+#define MODE_SWITCH    17
 
 
 #define BELL_DURATION 100
@@ -49,6 +50,7 @@ int blinkActiveTime = 500;
 int blinkWinTime = 200;
 int bellOnTime = 0, ballOnTime = 0, bumperLightOnTime = 0, topLightBlink = 0;
 int thr1Count = 0, thr2Count = 0, flipper1Bypass = 0, flipper2Bypass = 0;
+int autoSolve=-1;
 
 uint8_t buttonState[NUM_BUTTONS] = {0};
 uint8_t buttonDebounce[NUM_BUTTONS] = {0};
@@ -77,6 +79,7 @@ void setup() {
   Serial.begin(115200);
   Serial1.begin (9600);
 
+  pinMode(MODE_SWITCH,INPUT_PULLUP);
   for (int i = FIRST_BUTTON; i < FIRST_BUTTON + NUM_BUTTONS; i++) {
     pinMode(i, INPUT_PULLUP);
   }
@@ -127,6 +130,12 @@ void processBlinks() {
         if (++blinkPos >= NUM_TOPLIGHTS) blinkPos = 0;
         digitalWrite(FIRST_TOPLIGHT + blinkPos, LOW);
         if (random(20) > 5) setRandomLights(1);
+
+        if (digitalRead(MODE_SWITCH) != autoSolve) {
+          autoSolve=digitalRead(MODE_SWITCH);
+          if (autoSolve == LOW) Serial.print ('='); else  Serial.print ('>');          
+        }
+
       }
       break;
     case GAMESTATE_FLIPPER:
@@ -221,7 +230,7 @@ void loop() {
 
   if (Serial.available()) {
     int c = Serial.read();
-    if ((c >= 'a') && (c <= 'e')) {
+    if ((c >= GAMESTATE_IDLE) && (c <= GAMESTATE_LOST)) {
       gameState = c;
       blinkPos = 0; blinkCount = 0;
       setRandomLights(0);

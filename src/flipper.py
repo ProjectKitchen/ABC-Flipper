@@ -77,6 +77,7 @@ looseAnim=0
 clockAnim=0
 idleAnimCount=0
 scrollPos=0
+autoSolve=0
 
 pinballXPos=80
 pinballYPos=80
@@ -90,6 +91,7 @@ letterIDs = array.array('i',(0 for i in range(0,maxLetters)))
 boardIDs = array.array('i',(0 for i in range(0,maxLetters))) 
 pinballIDs = array.array('i',(0 for i in range(0,maxLives))) 
 nameID = 0
+brainID = 0
 pointsID=0
 clockID = 0
 coinID=0
@@ -264,7 +266,7 @@ def updatePoints(p):
     tkCanvas.itemconfigure(pointsID,text=str(points).zfill(7))   
 
 def createScene():
-    global letterIDs, nameID, pinballID, pointsID, clockID, coinID
+    global letterIDs, nameID, pinballID, pointsID, clockID, coinID, brainID
     for i in range (maxLetters):
         letterIDs[i] = tkCanvas.create_text(lettersXPos+10+letterwidth*i, lettersYPos, text=" ", anchor="nw", font=letterfont, fill=textcolor)
         x0, y0, x1, y1 = tkCanvas.bbox(letterIDs[i])
@@ -278,6 +280,7 @@ def createScene():
     clockID =tkCanvas.create_arc(0,clockYPos, clockSize, clockYPos+clockSize, start=90, extent=0, fill="#000000")
     coinID =tkCanvas.create_image(pinballXPos+100, pinballYPos, image=coinImg, anchor="center")
     nameID =tkCanvas.create_image(0, 5, image=nameImg, anchor="nw")
+    brainID =tkCanvas.create_image(0, 5, image=brainImg, anchor="nw")
 
 def updateLetters(string):
     global winAnim, clockAnim, idleAnimPhase
@@ -486,7 +489,7 @@ def ballLost():
 '''
 
 def processGameEvents():
-    global winAnim, looseAnim, clockAnim, lives, keyPressed
+    global winAnim, looseAnim, clockAnim, lives, keyPressed, autoSolve
     global points, highScore, highScoreAnim, highName, gameState, ballLostBypass,actword
     
     userInput=""
@@ -583,6 +586,14 @@ def processGameEvents():
                     
         except ValueError as e:
             inputString=str(userInput)
+            if (inputString=='='):
+                autoSolve=1
+                print ("autosolve enabled")
+                tkCanvas.itemconfigure(brainID,state='normal')
+            if (inputString=='>'):
+                autoSolve=0
+                print ("autosolve disabled")
+                tkCanvas.itemconfigure(brainID,state='hidden')
             if (inputString=='s'):
                 print ("start signal received")
                 updatePoints(0)
@@ -604,11 +615,10 @@ def processGameEvents():
                     tkCanvas.abs_move(clockID,clockXPos+(lives-1)*pinballWidth-5, clockYPos)
                     clockAnim=3600
                     
-                if (inputString==';') or (inputString=='<') or (inputString=='='):
+                if (inputString==';') or (inputString=='<'):
                     updatePoints(random.randrange(10,20))
                     playSound('x'+str(random.randint(MIN_FLOPSOUND,MAX_FLOPSOUND)))
-
-
+                    
     if clockAnim>0:
         if (clockAnim%200 == 0):
             tkCanvas.itemconfigure(clockID,extent=360-int(clockAnim/10))
@@ -701,6 +711,7 @@ letterwidth = letterfont.measure("W")+20
 pinballImg=ImageTk.PhotoImage(file=getPath("../img/pinball1.png"))
 coinImg=ImageTk.PhotoImage(file=getPath("../img/coin.jpg"))
 nameImg=ImageTk.PhotoImage(file=getPath("../img/name.jpg"))
+brainImg=ImageTk.PhotoImage(file=getPath("../img/brain_small.png"))
 
 pygame.mixer.init()
 playSound("w5")
@@ -740,6 +751,9 @@ updateLetters("     ")
 updatePinballs()
 tkCanvas.itemconfigure(nameID,state='hidden')
 tkCanvas.itemconfigure(coinID,state='hidden')
+tkCanvas.itemconfigure(brainID,state='hidden')
+sendCommand(GAMESTATE_IDLE);
+
 
 #gameState=GAMESTATE_HIGHSCORE
 #highScoreAnim=800
