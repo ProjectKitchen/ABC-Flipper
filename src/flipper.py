@@ -2,8 +2,6 @@ import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import *
 
-# from tkextrafont import Font
-
 import random
 from random import randrange
 import pygame
@@ -732,8 +730,8 @@ screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 print ("Screen size = "+str (screen_width) + "/" + str (screen_height)) 
 
-letterFontSize=int(screen_height/8)
-#letterFontSize=int(screen_height/5)
+#letterFontSize=int(screen_height/8)
+letterFontSize=int(screen_height/5)
 pointFontSize=int(screen_height/20)
 
 lettersXPos=int(screen_width/4)
@@ -741,8 +739,8 @@ lettersYPos=int(screen_height/3*2.0)
 root.attributes("-fullscreen", screenstate)
     
 tkFont.families()    
-letterfont = tkFont.Font(family="Noto Sans Mono", size = letterFontSize)
-#letterfont = tkFont.Font(family="Noto Mono", size = letterFontSize)
+#letterfont = tkFont.Font(family="Noto Sans Mono", size = letterFontSize)
+letterfont = tkFont.Font(family="Noto Mono", size = letterFontSize)
 
 pointfont = tkFont.Font(family="segment", size = pointFontSize)
 
@@ -767,9 +765,6 @@ lines[:] = [x.upper().rstrip("\n") for x in lines if x.strip()]
 print ("Loaded "+str(len(lines)) + " Words.")
 # print (lines)
 
-if (runningOnRaspi==1):
-    print("Running on Raspi! - Init LCD!")
-    #initLCD()
 
 if (runningOnRaspi==1):
     portName=raspiPortName  
@@ -793,21 +788,7 @@ tkCanvas.itemconfigure(coinID,state='hidden')
 tkCanvas.itemconfigure(brainID,state='hidden')
  
 sendCommand(GAMESTATE_IDLE);
-
-
-#gameState=GAMESTATE_HIGHSCORE
-#highScoreAnim=800
-#actword="A    "
-#updateLetters(actword)
-#tkCanvas.itemconfigure(nameID,state='normal')
-
-
 processGameEvents()
 root.mainloop()
-
-
-# root.configure(bg='blue')
-# tkCanvas.move(myrect,1,0)
-# tkCanvas.delete("all")
 
 
