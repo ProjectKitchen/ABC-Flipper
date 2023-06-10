@@ -12,6 +12,7 @@ import string
 from pathlib import Path
 from PIL import ImageFont, Image, ImageTk
 import os
+import sys
 
 if (os.name == 'posix'):
     runningOnRaspi=1
@@ -19,7 +20,7 @@ else:
     runningOnRaspi=0
 
 
-raspiPortName="/dev/ttyACM0"
+raspiPortName="/dev/ttyACM"
 otherPortName="COM17"
 
 scrollText = "         ABC-Flipper!!         Triff die Buchstaben und baue Worte!      Bitte Zoomi einwerfen ...      "
@@ -533,15 +534,19 @@ def processGameEvents():
     global points, highScore, highScoreAnim, highName, gameState, ballLostBypass,actword
     
     userInput=""
-    if (serialPortOpen==1) and (ser.inWaiting() > 0):
-        userInput = ser.read(ser.inWaiting()).decode('ascii') 
-        #print("Serial incoming:" + userInput) #, end='')
-    else:
-        if (keyPressed != ""):
-            userInput=keyPressed
-            #print ("press detected")
-            keyPressed=""
-        
+    try:
+        if (serialPortOpen==1) and (ser.inWaiting() > 0):
+            userInput = ser.read(ser.inWaiting()).decode('ascii') 
+            #print("Serial incoming:" + userInput) #, end='')
+        else:
+            if (keyPressed != ""):
+                userInput=keyPressed
+                #print ("press detected")
+                keyPressed=""
+    except:
+        print ("Serial error - exiting!")
+        sys.exit()
+            
     if userInput != "":
         try:
             inputNumber=int(userInput)
@@ -765,19 +770,22 @@ lines[:] = [x.upper().rstrip("\n") for x in lines if x.strip()]
 print ("Loaded "+str(len(lines)) + " Words.")
 # print (lines)
 
-
-if (runningOnRaspi==1):
-    portName=raspiPortName  
-else:
-    portName=otherPortName
-
 serialPortOpen=0
-try:
-    ser = serial.Serial(port=portName, baudrate=115200)
-    serialPortOpen=1
+serialNum=0
 
-except serial.SerialException as e:
-    print("Could not init Serial Port - please connect Arduino / check port settings!")
+while (serialNum<10) and (serialPortOpen==0):
+    if (runningOnRaspi==1):
+        portName=raspiPortName+str(serialNum)
+    else:
+        portName=otherPortName
+
+    try:
+        ser = serial.Serial(port=portName, baudrate=115200)
+        serialPortOpen=1
+
+    except serial.SerialException as e:
+        print("Could not init Serial Port "+ str(serialNum) + "- please connect Arduino / check port settings!")
+        serialNum=serialNum+1
 
 goalWord=lines[randrange(len(lines))]
 createScene()
