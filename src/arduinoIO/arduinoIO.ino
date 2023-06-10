@@ -235,6 +235,11 @@ void loop() {
       blinkPos = 0; blinkCount = 0;
       setRandomLights(0);
       setTopLights(0);
+      if (c==GAMESTATE_IDLE) {
+          autoSolve=digitalRead(MODE_SWITCH);
+          if (autoSolve == LOW) Serial.print ('='); else  Serial.print ('>'); 
+      }
+
     }
     else if (c == CMD_TRIGGER_BELL) {
       digitalWrite(BELL_RELAIS, LOW);

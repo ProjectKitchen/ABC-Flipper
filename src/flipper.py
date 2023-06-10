@@ -464,6 +464,11 @@ def ballLost():
 
     if ballLostBypass>0:
         return
+    if solveAnimCount>0:
+        ballLostBypass=BALLOST_BYPASS_TIME
+        sendCommand(CMD_TRIGGER_BALL)
+        return
+        
         
     ballLostBypass=BALLOST_BYPASS_TIME
     lives=lives-1
@@ -501,11 +506,12 @@ def ballLost():
     updatePinballs()
 
 def enterWonPhase():
-    global gameState, winAnim
+    global gameState, winAnim, solveAnimCount
     updatePoints(1000)
     playSound("w4")
     gameState=GAMESTATE_WON
     sendCommand(GAMESTATE_WON)
+    solveAnimCount=0
     winAnim=100
 
 def enterAnagramPhase():
