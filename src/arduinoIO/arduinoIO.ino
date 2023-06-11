@@ -286,7 +286,7 @@ void loop() {
 
 
   // control flipper coils via buttons
-  if (gameState == GAMESTATE_FLIPPER) {
+  if ((gameState == GAMESTATE_FLIPPER) || (gameState == GAMESTATE_WON)) {
 
     if (!digitalRead(THROWER1_BUTTON)) {
       if ((thr1Count < FLIPPERCOIL_MAXTIME) && (!flipper1Bypass)) {
