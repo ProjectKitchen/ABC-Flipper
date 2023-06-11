@@ -79,9 +79,8 @@ idleAnimCount=0
 idleAnimPhase=1
 scrollPos=0
 autoSolve=1
-solveAnimCount=0
-solvePos=0
 ejectTimeout=0
+ballLostBypass=0
 
 pinballXPos=80
 pinballYPos=80
@@ -103,8 +102,9 @@ coinID=0
 letterwidth=0
 modifyLetter=0   
 actTargets = array.array('u',('x' for i in range(0,maxTargets))) 
+letterOrder=random.sample(range(5), 5)
+
 keyPressed=""
-ballLostBypass=0
 
 def getPath(name):
     return (str(Path(__file__).resolve().parent.joinpath(name)))
@@ -219,12 +219,17 @@ def downLetter():
 
 def addLetter(pos):
     global actword
-    if len(actword)>=maxLetters:
-        return
     
     sendLCDLetter(pos+1,actTargets[pos])
     if (actTargets[pos] != ' '):
-        actword=actword+actTargets[pos]
+        if autoSolve==0:
+            if len(actword)<maxLetters:
+                actword=actword+actTargets[pos]
+        else:
+            s=list(actword)
+            s[letterOrder[pos]]=goalWord[letterOrder[pos]]
+            actword="".join(s)
+            
         updateLetters(actword)
         playSound('f'+str(pos+1))
         actTargets[pos]=' '
@@ -304,7 +309,7 @@ def updateLetters(string):
             tkCanvas.itemconfigure(boardIDs[i],fill=boardcolor)
             
         if (i==modifyLetter):
-            if (gameState==GAMESTATE_ANAGRAM or solveAnimCount>0):
+            if (gameState==GAMESTATE_ANAGRAM):
                 tkCanvas.itemconfigure(boardIDs[i],fill=activeboardcolor)        
             if (gameState==GAMESTATE_HIGHSCORE):
                 tkCanvas.itemconfigure(boardIDs[i],fill="green")
@@ -321,7 +326,10 @@ def newGameRound():
     global actword, goalWord, gameState, ballLostBypass, ejectTimeout
     goalWord=lines[randrange(len(lines))]
     print ("GOAL="+goalWord)
-    actword=""
+    if autoSolve==0:        
+        actword=""
+    else:
+        actword="     "
     ballLostBypass=BALLOST_BYPASS_TIME
     renewTargets()
     tkCanvas.itemconfigure(clockID,state='hidden')      
@@ -334,11 +342,10 @@ def newGameRound():
     sendCommand(GAMESTATE_FLIPPER);
 
 def renewTargets():
-    global actTargets
-    samp=random.sample(range(5), 5)
+    global actTargets,letterOrder
+    letterOrder=random.sample(range(5), 5)
     for i in range (maxTargets):
-        #actTargets[i]=random.choice(string.ascii_uppercase)
-        actTargets[i]=goalWord[samp[i]]
+        actTargets[i]=goalWord[letterOrder[i]]
     printTargetsLCD()
 
 def _from_rgb(rgb):
@@ -421,25 +428,7 @@ def highAnim():
         if (highScoreAnim>400):
             tkCanvas.abs_move(nameID,0, 5)
         else:
-            tkCanvas.abs_move(nameID,0, int(highScoreAnim/2-200))
-
-def solveAnim():
-    global solvePos, solveAnimCount, modifyLetter, actword
-    if solveAnimCount % 100 == 75:
-        modifyLetter=actword.find(goalWord[solvePos],solvePos)
-        updateLetters(actword)
-
-    if solveAnimCount % 100 == 50:
-        if modifyLetter==solvePos:
-            updateLetters(actword)
-            if solvePos<maxLetters:
-                solvePos=solvePos+1
-            solveAnimCount=80
-        else:
-            switchLetterLeft()
-            playSound("trommel")
-            solveAnimCount=100
-        
+            tkCanvas.abs_move(nameID,0, int(highScoreAnim/2-200))        
 
 def animLettersWon():
     if winAnim % 10 == 0:
@@ -463,12 +452,7 @@ def ballLost():
     global highScore, highScoreAnim, scrollText, scrollPos, idleAnimPhase
 
     if ballLostBypass>0:
-        return
-    if solveAnimCount>0:
-        ballLostBypass=BALLOST_BYPASS_TIME
-        sendCommand(CMD_TRIGGER_BALL)
-        return
-        
+        return        
         
     ballLostBypass=BALLOST_BYPASS_TIME
     lives=lives-1
@@ -506,28 +490,26 @@ def ballLost():
     updatePinballs()
 
 def enterWonPhase():
-    global gameState, winAnim, solveAnimCount
+    global gameState, winAnim
     updatePoints(1000)
     playSound("w4")
     gameState=GAMESTATE_WON
     sendCommand(GAMESTATE_WON)
-    solveAnimCount=0
     winAnim=100
 
 def enterAnagramPhase():
-    global gameState, clockAnim, solveAnimCount, autoSolve, solvePos
+    global gameState, clockAnim
 
-    if (autoSolve==0):
+    if autoSolve==0:
         gameState=GAMESTATE_ANAGRAM
         sendCommand(GAMESTATE_ANAGRAM)
         tkCanvas.itemconfigure(clockID,state='normal')
         tkCanvas.itemconfigure(clockID,extent=359)                    
         tkCanvas.abs_move(clockID,clockXPos+(lives-1)*pinballWidth-5, clockYPos)
         clockAnim=3600
+        updateLetters(actword)
     else:
-        solveAnimCount=200
-        solvePos=0
-    updateLetters(actword)
+        enterWonPhase()
 
 
 
@@ -536,7 +518,7 @@ def enterAnagramPhase():
 '''
 
 def processGameEvents():
-    global winAnim, looseAnim, clockAnim, solveAnimCount, lives, keyPressed, autoSolve, ejectTimeout
+    global winAnim, looseAnim, clockAnim, lives, keyPressed, autoSolve, ejectTimeout
     global points, highScore, highScoreAnim, highName, gameState, ballLostBypass,actword
     
     userInput=""
@@ -602,8 +584,9 @@ def processGameEvents():
                 if inputNumber>=5 and inputNumber<5+maxTargets:
                     addLetter(inputNumber-5)
                     updatePoints(random.randrange(10,20))
-                    if (len(actword) == maxLetters):
-                        playSound("gong")
+                    if (len(actword.replace(" ", "")) == maxLetters):
+                        if autoSolve==0:
+                            playSound("gong")
                         enterAnagramPhase()
                     else:
                         sendCommand(CMD_RANDOM_LIGHT)
@@ -641,11 +624,15 @@ def processGameEvents():
             if (gameState==GAMESTATE_FLIPPER):
                 if (inputString==':'):
                     print ("joker hit!")
-                    updatePoints(200)
+                    updatePoints(200) 
                     playSound('joker')
+                    if autoSolve==1:
+                        actword=goalWord
+                        updateLetters(actword)
                     for i in range (maxLetters):
                         if (actTargets[i] != ' '):
-                            actword=actword+actTargets[i]
+                            if autoSolve==0:
+                                actword=actword+actTargets[i]
                             actTargets[i]=' '
                     printTargetsLCD()
                     enterAnagramPhase()
@@ -668,15 +655,6 @@ def processGameEvents():
             gameState=GAMESTATE_LOST
             updateLetters(goalWord)
             looseAnim=200           
-
-    if solveAnimCount>0:
-        solveAnimCount=solveAnimCount-1
-        if (actword in lines):
-            solveAnimCount=0
-        if (solveAnimCount==0):
-            enterWonPhase()
-        else:
-            solveAnim()
 
     if ballLostBypass>0:
         ballLostBypass=ballLostBypass-1
