@@ -397,7 +397,7 @@ def idleAnim():
             scrollDisplay=highName
             for i in range(maxLetters):
                 if scrollPos%3 == 0:
-                    tkCanvas.itemconfigure(letterIDs[i],fill="white")
+                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((20, 20, 100)))
                 else:
                     tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 20, 20)))
             if (scrollPos==12):
@@ -410,8 +410,9 @@ def idleAnim():
                 if scrollPos%3 == 0:
                     tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((255, 20, 20)))
                 else:
-                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((0, 0, 70)))
+                    tkCanvas.itemconfigure(letterIDs[i],fill=_from_rgb((20, 20, 100)))
             if (scrollPos==12):
+                scrollDisplay="     "
                 scrollPos=0
                 idleAnimPhase=0
 
@@ -448,7 +449,7 @@ def animLettersLost():
 
 
 def ballLost():
-    global lives, gameState, ballLostBypass, actword, modifyLetter
+    global lives, gameState, ballLostBypass, actword, modifyLetter, winAnim
     global highScore, highScoreAnim, scrollText, scrollPos, idleAnimPhase
 
     if ballLostBypass>0:
@@ -457,18 +458,23 @@ def ballLost():
     ballLostBypass=BALLOST_BYPASS_TIME
     lives=lives-1
     print ("BALL LOST! Lives left: " + str(lives))
+    playSound("t5")
+    pygame.time.delay(1000)
     if (lives>0):
-        playSound("t5")
-        pygame.time.delay(1000)
         sendCommand(CMD_TRIGGER_BALL)
 
     else:
-        playSound("t5")
-        pygame.time.delay(1000)
+        playSound("t3")
         if (points<=highScore):
-            playSound("t3")
-            updateLetters("     ")
-            gameState=GAMESTATE_IDLE
+            if (autoSolve==1):
+                actword=goalWord
+                updateLetters(goalWord)
+                gameState=GAMESTATE_WON
+                updateLetters(goalWord)
+                winAnim=200           
+            else:
+                updateLetters("     ")
+                gameState=GAMESTATE_IDLE
 
         else:
             playSound("applause")
@@ -495,7 +501,7 @@ def enterWonPhase():
     playSound("w4")
     gameState=GAMESTATE_WON
     sendCommand(GAMESTATE_WON)
-    winAnim=100
+    winAnim=200
 
 def enterAnagramPhase():
     global gameState, clockAnim
@@ -687,7 +693,11 @@ def processGameEvents():
         if winAnim<=0:
             for i in range (len(actword)):
                 tkCanvas.itemconfigure(letterIDs[i],fill=textcolor)        
-            newGameRound()
+            if (lives>0):
+                newGameRound()
+            else:
+                gameState=GAMESTATE_IDLE
+
     
     if (gameState==GAMESTATE_FLIPPER):
         ejectTimeout=ejectTimeout-1
