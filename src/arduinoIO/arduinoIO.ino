@@ -223,6 +223,9 @@ void loop() {
       if ((buttonDebounce[i] == 0) && buttonState[i])  {
         buttonState[i] = 0;
         // if desired, handle button release
+        if ((gameState==GAMESTATE_IDLE) && (i==3)) {
+          Serial.print('.');  // send release info for fix/morse key
+        }
       }
     }
   }

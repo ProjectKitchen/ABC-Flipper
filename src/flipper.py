@@ -79,6 +79,7 @@ idleAnimCount=0
 idleAnimPhase=1
 scrollPos=0
 autoSolve=1
+lockAutoSove=0
 ejectTimeout=0
 ballLostBypass=0
 
@@ -105,6 +106,8 @@ actTargets = array.array('u',('x' for i in range(0,maxTargets)))
 letterOrder=random.sample(range(5), 5)
 
 keyPressed=""
+
+
 
 def getPath(name):
     return (str(Path(__file__).resolve().parent.joinpath(name)))
@@ -247,6 +250,89 @@ def keydown(e):
 #def keyup(e):
     #print ('keyUp', e.char)
     
+
+'''
+     Morse Code decoding
+'''
+
+def morse_code_translator(letter):
+    morse_code_dict = {
+        '.-': 'A', '-...': 'B', '-.-.': 'C', '-..': 'D', '.': 'E',
+        '..-.': 'F', '--.': 'G', '....': 'H', '..': 'I', '.---': 'J',
+        '-.-': 'K', '.-..': 'L', '--': 'M', '-.': 'N', '---': 'O',
+        '.--.': 'P', '--.-': 'Q', '.-.': 'R', '...': 'S', '-': 'T',
+        '..-': 'U', '...-': 'V', '.--': 'W', '-..-': 'X', '-.--': 'Y',
+        '--..': 'Z'
+    }
+
+    if letter in morse_code_dict:
+        return(morse_code_dict[letter])
+
+    return ''
+
+spaceDuration = 0
+morseDuration = 0
+morseCodeActive = 0
+morseCode = ""
+morseText = ""
+fn=getPath("/home/pi/ABC-Flipper/sounds/gong.wav") 
+
+
+def processMorseCode(morseKeyActivity):
+    global morseText, morseCode, morseDuration, spaceDuration, morseCodeActive, channel1
+    morseSymbol=""
+    
+    if morseKeyActivity == "+":
+        morseSound.play()
+        morseCodeActive=1
+        morseDuration = 0
+        return 0
+
+    if morseKeyActivity == "-":
+        if morseDuration < 20:
+            pygame.time.delay(50)
+
+        morseSound.stop()
+        morseCodeActive=0
+        spaceDuration=0
+        if morseDuration >= 50:  # long press
+            morseSymbol = '-'
+        else:  # short press
+            morseSymbol = '.'        
+        print (morseSymbol, end="", flush=True)
+        morseCode+=morseSymbol
+        return 0
+        
+    
+    if (morseCodeActive==1):
+        morseDuration+=1
+    else:
+        spaceDuration+=1
+    
+        if (spaceDuration > 150) and (morseCode != ""):
+            playSound("x9")
+            translatedCode = morse_code_translator(morseCode)
+            print(f" {translatedCode}  ", end="", flush=True)
+            morseText += translatedCode
+            morseCode = ""
+            if len(morseText)>0 and len(morseText)<6:
+                sendLCDLetter(len(morseText),translatedCode)
+            if len(morseText) >= 5:
+                print ("got word: "+morseText)
+                if morseText == "ZOOMI":
+                    return(1)
+                if morseText == "BRAIN":
+                    return(2)
+                morseText=""
+        if (spaceDuration == 700):
+            print (" ... Clear!")
+            for i in range (maxTargets):
+                sendLCDLetter(i+1," ")
+            playSound("x7")
+            morseText=""
+            
+    return 0
+
     
 '''
      Drawing / Tk rountines
@@ -340,6 +426,18 @@ def newGameRound():
     updateLetters(actword)
     sendCommand(CMD_TRIGGER_BALL)
     sendCommand(GAMESTATE_FLIPPER);
+
+
+def startGame():
+    global lives, points
+    playSound("n3")
+    lives=3
+    points=0
+    updatePoints(0)
+    newGameRound()
+    updatePinballs()
+    print ("GAME STARTED !! Lives left: " + str(lives))
+ 
 
 def renewTargets():
     global actTargets,letterOrder
@@ -524,7 +622,7 @@ def enterAnagramPhase():
 '''
 
 def processGameEvents():
-    global winAnim, looseAnim, clockAnim, lives, keyPressed, autoSolve, ejectTimeout
+    global winAnim, looseAnim, clockAnim, lives, keyPressed, autoSolve, lockAutoSove, ejectTimeout
     global points, highScore, highScoreAnim, highName, gameState, ballLostBypass,actword
     
     userInput=""
@@ -544,15 +642,12 @@ def processGameEvents():
     if userInput != "":
         try:
             inputNumber=int(userInput)
-            if (inputNumber==0) and (gameState==GAMESTATE_IDLE):
-                playSound("n3")
-                lives=3
-                points=0
-                updatePoints(0)
-                print ("GAME STARTED !! Lives left: " + str(lives))
-                newGameRound()
-                lives=3
-                updatePinballs()
+            if (gameState==GAMESTATE_IDLE):
+                if (inputNumber==0):
+                    startGame()
+                if (inputNumber==3):
+                    processMorseCode("+")
+                    
 
             if (gameState==GAMESTATE_ANAGRAM):
                 
@@ -617,15 +712,18 @@ def processGameEvents():
                     
         except ValueError as e:
             inputString=str(userInput)
-            if (inputString=='='):
+            if (inputString=='=') and (lockAutoSove==0):
                 autoSolve=1
                 print ("autosolve enabled")
-            if (inputString=='>'):
+            if (inputString=='>') and (lockAutoSove==0):
                 autoSolve=0
                 print ("autosolve disabled")
             if (inputString=='s'):
                 print ("start signal received")
                 updatePoints(0)
+            if (inputString=='.'):
+                processMorseCode("-")
+
 
             if (gameState==GAMESTATE_FLIPPER):
                 if (inputString==':'):
@@ -667,6 +765,16 @@ def processGameEvents():
 
     if (gameState==GAMESTATE_IDLE):
         idleAnim()
+        morse=processMorseCode(" ")
+        if (morse==1):
+            startGame()            
+        if (morse==2):
+            playSound("bells")
+            lockAutoSove=1
+            if autoSolve==1:
+                autoSolve=0
+            else:
+                autoSolve=1
         
     if (gameState==GAMESTATE_HIGHSCORE):
         highAnim()
@@ -751,6 +859,7 @@ brainImg=ImageTk.PhotoImage(file=getPath("../img/brain_small.png"))
 
 pygame.mixer.init()
 playSound("w5")
+morseSound = pygame.mixer.Sound("../sounds/morse.wav")
 
 root.bind("<F11>", toggle_fullscreen)
 root.bind("<Escape>", end_fullscreen)
