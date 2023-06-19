@@ -87,6 +87,7 @@ void setup() {
   for (int i = FIRST_RELAIS; i < FIRST_RELAIS + NUM_RELAIS; i++) {
     pinMode(i, OUTPUT); digitalWrite(i, HIGH);
   }
+  digitalWrite (BALL_RELAIS, LOW);
 
   for (int i = FIRST_LIGHT; i < FIRST_LIGHT + NUM_LIGHTS; i++) {
     pinMode(i, OUTPUT); digitalWrite(i, HIGH);
@@ -249,7 +250,7 @@ void loop() {
       bellOnTime = BELL_DURATION;
     }
     else if (c == CMD_TRIGGER_BALL) {
-      digitalWrite(BALL_RELAIS, LOW);
+      digitalWrite(BALL_RELAIS, HIGH);
       ballOnTime = BALL_DURATION;
     }
     else if (c == CMD_BUMPER_LIGHT) {
@@ -272,7 +273,7 @@ void loop() {
 
   if (ballOnTime) {
     ballOnTime--;
-    if (!ballOnTime) digitalWrite(BALL_RELAIS, HIGH);
+    if (!ballOnTime) digitalWrite(BALL_RELAIS, LOW);
   }
 
   if (bumperLightOnTime) {
