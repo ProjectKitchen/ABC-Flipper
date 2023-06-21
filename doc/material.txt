@@ -6,7 +6,8 @@ https://luma-oled.readthedocs.io/en/latest/hardware.html#spi
 https://www.brainy-bits.com/post/two-is-better-than-one-how-to-connect-two-spi-oled-displays
 sudo python3 welcome.py -d st7735 -i spi --width 160 --height 128
 
-
+1 x HDMI Screen:
+https://www.samsung.com/hk_en/support/model/LS27C310EACXXK/
 
 Port expander:
 3x Adafruit MCP23017 I2C GPIO Expander
