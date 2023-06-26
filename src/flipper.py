@@ -324,7 +324,7 @@ def processMorseCode(morseKeyActivity):
                 if morseText == "BRAIN":
                     return(2)
                 morseText=""
-        if (spaceDuration == 700):
+        if (spaceDuration == 700) and (morseText != ""):
             print (" ... Clear!")
             for i in range (maxTargets):
                 sendLCDLetter(i+1," ")
@@ -409,7 +409,8 @@ def updatePinballs():
             tkCanvas.itemconfigure(pinballIDs[i],state='hidden')
 
 def newGameRound():
-    global actword, goalWord, gameState, ballLostBypass, ejectTimeout
+    global actword, goalWord, gameState, ballLostBypass, ejectTimeout, morseText
+    morseText=""
     goalWord=lines[randrange(len(lines))]
     print ("GOAL="+goalWord)
     if autoSolve==0:        
