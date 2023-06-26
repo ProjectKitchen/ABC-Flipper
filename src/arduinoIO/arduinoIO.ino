@@ -4,7 +4,7 @@
 //  interface to flipper.py
 //  hardware: Teensy2.0++
 //
-//  buttons/sensors connected to in4-in17
+//  buttons/sensors connected to in4-in17 
 //  relais connected to out18-out25 (lights) and out38-out45(magnets)
 
 #define NUM_BUTTONS 13
@@ -88,6 +88,8 @@ void setup() {
     pinMode(i, OUTPUT); digitalWrite(i, HIGH);
   }
   digitalWrite (BALL_RELAIS, LOW);
+  digitalWrite (THROWER1_RELAIS, LOW);
+  digitalWrite (THROWER2_RELAIS, LOW);
 
   for (int i = FIRST_LIGHT; i < FIRST_LIGHT + NUM_LIGHTS; i++) {
     pinMode(i, OUTPUT); digitalWrite(i, HIGH);
@@ -296,40 +298,40 @@ void loop() {
       if ((thr1Count < FLIPPERCOIL_MAXTIME) && (!flipper1Bypass)) {
         thr1Count++;
         if (thr1Count == FLIPPERCOIL_MAXTIME) flipper1Bypass = FLIPPER_BYPASS_TIME;
-        else digitalWrite(THROWER1_RELAIS, LOW);
+        else digitalWrite(THROWER1_RELAIS, HIGH);
       }
 
     }
     else {
       thr1Count = 0;
-      digitalWrite(THROWER1_RELAIS, HIGH);
+      digitalWrite(THROWER1_RELAIS, LOW);
     }
     if (flipper1Bypass) {
       flipper1Bypass--;
-      digitalWrite(THROWER1_RELAIS, HIGH);
+      digitalWrite(THROWER1_RELAIS, LOW);
     }
 
     if (!digitalRead(THROWER2_BUTTON)) {
       if ((thr2Count < FLIPPERCOIL_MAXTIME) && (!flipper2Bypass)) {
         thr2Count++;
         if (thr2Count == FLIPPERCOIL_MAXTIME) flipper2Bypass = FLIPPER_BYPASS_TIME;
-        else digitalWrite(THROWER2_RELAIS, LOW);
+        else digitalWrite(THROWER2_RELAIS, HIGH);
       }
 
     }
     else {
       thr2Count = 0;
-      digitalWrite(THROWER2_RELAIS, HIGH);
+      digitalWrite(THROWER2_RELAIS, LOW);
     }
     if (flipper2Bypass) {
       flipper2Bypass--;
-      digitalWrite(THROWER2_RELAIS, HIGH);
+      digitalWrite(THROWER2_RELAIS, LOW);
     }
 
   } else {
     // deactivate throwers!
-    digitalWrite (THROWER1_RELAIS, HIGH);
-    digitalWrite (THROWER2_RELAIS, HIGH);
+    digitalWrite (THROWER1_RELAIS, LOW);
+    digitalWrite (THROWER2_RELAIS, LOW);
   }
 
   processBlinks();
