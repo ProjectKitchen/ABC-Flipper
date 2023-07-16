@@ -412,6 +412,7 @@ def newGameRound():
     global actword, goalWord, gameState, ballLostBypass, ejectTimeout, morseText
     morseText=""
     goalWord=lines[randrange(len(lines))]
+    goalWord=goalWord[:5]
     print ("GOAL="+goalWord)
     if autoSolve==0:        
         actword=""
